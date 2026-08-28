@@ -4,6 +4,7 @@ import {
   MODALIDADES, STATUS_MEDICAO, CORES_MEDICAO, TIPOS_ADITIVO, money, dt,
 } from './lib'
 import { Pill, SelectPill, Avatar, Campo, inputCls, Botao } from './ui'
+import { ListaTarefasContrato } from './tarefas'
 
 const vazio = {
   numero: '', objeto: '', orgao: '', modalidade: 'Pregão Eletrônico', processo: '', local: '',
@@ -213,6 +214,7 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
                   <span className="font-normal text-slate-400"> · recebido: {money(medicoes.filter((m) => m.status === 'Recebida').reduce((s, m) => s + Number(m.valor || 0), 0))}</span>
                 </div>
               )}
+              {medicoes.length === 0 && <p className="text-[13px] text-slate-400 mt-2">Nenhuma medição lançada neste contrato.</p>}
               <button onClick={addMedicao} className="mt-4 text-[13px] font-semibold text-slate-400 hover:text-[#0073ea]">+ Adicionar medição</button>
             </div>
           )}
@@ -231,6 +233,7 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
                   <input value={a.descricao || ''} onChange={(e) => patchAditivo(a.id, { descricao: e.target.value })} placeholder="descrição" className="col-span-12 border border-slate-200 rounded px-2 py-1" />
                 </div>
               ))}
+              {aditivos.length === 0 && <p className="text-[13px] text-slate-400">Nenhum aditivo registrado neste contrato.</p>}
               <button onClick={addAditivo} className="mt-4 text-[13px] font-semibold text-slate-400 hover:text-[#0073ea]">+ Adicionar aditivo</button>
             </div>
           )}
