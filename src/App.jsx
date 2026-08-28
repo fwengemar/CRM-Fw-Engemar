@@ -219,7 +219,9 @@ export default function App() {
           {visao === 'minhas' && <MinhasTarefas {...propsTarefa} />}
           {visao === 'quadro' && <QuadroTarefas {...propsTarefa} />}
           {visao === 'calendario' && (
-            <Calendario tarefas={tarefasFiltradas} contratos={contratos} perfis={perfis} onAbrir={setTarefaAberta} onAbrirContrato={setAberto} />
+            <Calendario tarefas={tarefasFiltradas} contratos={contratos} perfis={perfis}
+              onAbrir={setTarefaAberta} onAbrirContrato={setAberto} onPatch={patchTarefa}
+              onNovaTarefa={(prazo) => setTarefaAberta({ prazo })} />
           )}
         </main>
       </div>
@@ -232,7 +234,7 @@ export default function App() {
       )}
 
       {tarefaAberta && (
-        <TarefaDrawer tarefa={tarefaAberta.id ? tarefas.find((t) => t.id === tarefaAberta.id) : (tarefaAberta.contrato_id ? { contrato_id: tarefaAberta.contrato_id } : null)}
+        <TarefaDrawer tarefa={tarefaAberta.id ? tarefas.find((t) => t.id === tarefaAberta.id) : (Object.keys(tarefaAberta).length ? tarefaAberta : null)}
           tarefas={tarefas} contratos={contratos} perfis={perfis} user={user}
           onClose={() => setTarefaAberta(null)} onSalvo={carregar} />
       )}

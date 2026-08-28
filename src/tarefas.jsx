@@ -157,8 +157,9 @@ export function QuadroTarefas({ tarefas, perfis, contratos, onPatch, onAbrir }) 
 }
 
 /* ===================== CALENDÁRIO ===================== */
-export function Calendario({ tarefas, contratos, perfis, onAbrir, onAbrirContrato }) {
+export function Calendario({ tarefas, contratos, perfis, onAbrir, onAbrirContrato, onNovaTarefa, onPatch }) {
   const agora = new Date()
+  const [dia, setDia] = useState(null)
   const [ref, setRef] = useState(new Date(agora.getFullYear(), agora.getMonth(), 1))
   const ano = ref.getFullYear(), mes = ref.getMonth()
   const primeiro = new Date(ano, mes, 1)
@@ -175,7 +176,8 @@ export function Calendario({ tarefas, contratos, perfis, onAbrir, onAbrirContrat
           <button onClick={() => setRef(new Date(ano, mes - 1, 1))} className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50">‹</button>
           <h2 className="text-[15px] font-bold text-slate-700 capitalize w-48 text-center">{nomeMes}</h2>
           <button onClick={() => setRef(new Date(ano, mes + 1, 1))} className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50">›</button>
-          <button onClick={() => setRef(new Date(agora.getFullYear(), agora.getMonth(), 1))} className="ml-2 text-[12px] font-semibold text-slate-400 hover:text-[#0073ea]">hoje</button>
+          <button onClick={() => { setRef(new Date(agora.getFullYear(), agora.getMonth(), 1)); setDia(hoje()) }}
+            className="ml-2 text-[12px] font-semibold text-slate-400 hover:text-[#0073ea]">hoje</button>
         </div>
         <div className="flex items-center gap-3 text-[11px] text-slate-400">
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#7b68ee]" /> tarefa</span>
@@ -199,21 +201,24 @@ export function Calendario({ tarefas, contratos, perfis, onAbrir, onAbrirContrat
             const sessoes = contratos.filter((c) => c.data_sessao === s)
             const vencs = contratos.filter((c) => c.vigencia_fim === s)
             return (
-              <div key={i} className={'min-h-[104px] border-b border-r border-slate-100 p-1.5 ' + (noMes ? 'bg-white' : 'bg-slate-50/60')}>
+              <div key={i} onClick={() => setDia(s)}
+                className={'min-h-[104px] border-b border-r border-slate-100 p-1.5 cursor-pointer transition '
+                  + (noMes ? 'bg-white' : 'bg-slate-50/60')
+                  + (dia === s ? ' ring-2 ring-inset ring-[#0073ea]/50 bg-[#0073ea]/5' : ' hover:bg-slate-50')}>
                 <div className={'text-[11px] font-semibold mb-1 w-6 h-6 flex items-center justify-center rounded-full ' + (ehHoje ? 'bg-[#0073ea] text-white' : noMes ? 'text-slate-500' : 'text-slate-300')}>{d.getDate()}</div>
                 <div className="space-y-1">
                   {sessoes.map((c) => (
-                    <button key={'s' + c.id} onClick={() => onAbrirContrato(c)} className="w-full text-left text-[10px] px-1.5 py-1 rounded bg-[#fdab3d]/15 text-[#a16207] font-semibold line-clamp-1">
+                    <button key={'s' + c.id} onClick={(e) => { e.stopPropagation(); onAbrirContrato(c) }} className="w-full text-left text-[10px] px-1.5 py-1 rounded bg-[#fdab3d]/15 text-[#a16207] font-semibold line-clamp-1">
                       Sessão · {c.numero || c.objeto.slice(0, 18)}
                     </button>
                   ))}
                   {vencs.map((c) => (
-                    <button key={'v' + c.id} onClick={() => onAbrirContrato(c)} className="w-full text-left text-[10px] px-1.5 py-1 rounded bg-[#e2445c]/15 text-[#b91c1c] font-semibold line-clamp-1">
+                    <button key={'v' + c.id} onClick={(e) => { e.stopPropagation(); onAbrirContrato(c) }} className="w-full text-left text-[10px] px-1.5 py-1 rounded bg-[#e2445c]/15 text-[#b91c1c] font-semibold line-clamp-1">
                       Fim vigência · {c.numero || c.objeto.slice(0, 14)}
                     </button>
                   ))}
                   {tdia.slice(0, 4).map((t) => (
-                    <button key={t.id} onClick={() => onAbrir(t)}
+                    <button key={t.id} onClick={(e) => { e.stopPropagation(); onAbrir(t) }}
                       className={'w-full text-left text-[10px] px-1.5 py-1 rounded line-clamp-1 font-medium ' + (CONCLUIDA(t) ? 'bg-slate-100 text-slate-400 line-through' : 'bg-[#7b68ee]/12 text-[#4c3fbb]')}>
                       {t.titulo}
                     </button>
@@ -225,6 +230,46 @@ export function Calendario({ tarefas, contratos, perfis, onAbrir, onAbrirContrat
           })}
         </div>
       </div>
+
+      {dia && (() => {
+        const doDia = tarefas.filter((t) => t.prazo === dia)
+        const sessoesDia = contratos.filter((c) => c.data_sessao === dia)
+        const vencsDia = contratos.filter((c) => c.vigencia_fim === dia)
+        const titulo = new Date(dia + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+        const vazio = !doDia.length && !sessoesDia.length && !vencsDia.length
+        return (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-slate-700 capitalize">
+                {titulo}{dia === hoje() && <span className="ml-2 text-[11px] font-semibold text-[#0073ea] normal-case">hoje</span>}
+              </h3>
+              <button onClick={() => setDia(null)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">✕</button>
+            </div>
+
+            {vazio && <p className="text-[13px] text-slate-400">Nada marcado para este dia.</p>}
+
+            {sessoesDia.map((c) => (
+              <button key={'ps' + c.id} onClick={() => onAbrirContrato(c)} className="w-full text-left flex items-center gap-3 py-2 border-t border-slate-100 hover:bg-slate-50">
+                <span className="w-2 h-2 rounded-full bg-[#fdab3d] shrink-0" />
+                <span className="text-[13px] text-slate-700"><b>Sessão de licitação</b> · {c.numero || c.objeto}</span>
+              </button>
+            ))}
+            {vencsDia.map((c) => (
+              <button key={'pv' + c.id} onClick={() => onAbrirContrato(c)} className="w-full text-left flex items-center gap-3 py-2 border-t border-slate-100 hover:bg-slate-50">
+                <span className="w-2 h-2 rounded-full bg-[#e2445c] shrink-0" />
+                <span className="text-[13px] text-slate-700"><b>Fim de vigência</b> · {c.numero || c.objeto}</span>
+              </button>
+            ))}
+            {doDia.map((t) => (
+              <Linha key={'p' + t.id} t={t} tarefas={tarefas} perfis={perfis} contratos={contratos} onPatch={onPatch} onAbrir={onAbrir} />
+            ))}
+
+            <button onClick={() => onNovaTarefa(dia)} className="mt-4 text-[13px] font-semibold text-slate-400 hover:text-[#0073ea]">
+              + Nova tarefa neste dia
+            </button>
+          </div>
+        )
+      })()}
     </div>
   )
 }
