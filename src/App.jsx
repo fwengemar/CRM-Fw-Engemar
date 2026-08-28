@@ -24,9 +24,9 @@ function Login() {
     <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'linear-gradient(135deg,#0b2a4a 0%,#0073ea 100%)' }}>
       <form onSubmit={entrar} className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8">
         <div className="text-center mb-6">
-          <img src="/logo.png" alt="FW Engemar" className="w-20 h-20 mx-auto rounded-xl" />
-          <h1 className="text-xl font-extrabold text-slate-800 mt-2">FW Engemar</h1>
-          <p className="text-[13px] text-slate-400">Gestão de Contratos</p>
+          <img src="/logo.png" alt="FW CRM" className="w-20 h-20 mx-auto rounded-xl" />
+          <h1 className="text-xl font-extrabold text-slate-800 mt-2">FW CRM</h1>
+          <p className="text-[13px] text-slate-400">FW Engemar · Construções e Serviços Marítimos</p>
         </div>
         <label className="block mb-3">
           <span className="text-[11px] font-bold uppercase text-slate-400">E-mail</span>
@@ -139,10 +139,10 @@ export default function App() {
       <aside className="w-[218px] shrink-0 bg-white border-r border-slate-200 hidden md:flex flex-col">
         <div className="px-5 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="FW Engemar" className="w-8 h-8" />
+            <img src="/logo.png" alt="FW CRM" className="w-8 h-8" />
             <div>
-              <div className="font-extrabold text-slate-800 leading-tight text-[15px]">FW Engemar</div>
-              <div className="text-[11px] text-slate-400">Espaço de trabalho</div>
+              <div className="font-extrabold text-slate-800 leading-tight text-[15px]">FW CRM</div>
+              <div className="text-[11px] text-slate-400">FW Engemar</div>
             </div>
           </div>
         </div>
