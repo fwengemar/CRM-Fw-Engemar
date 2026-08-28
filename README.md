@@ -49,3 +49,14 @@ npm run dev
 
 As credenciais públicas do Supabase têm valor padrão em `src/lib.js` e podem ser
 sobrescritas por `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+
+## Como publicar uma alteração
+
+O código vive em duas cópias sincronizadas: esta pasta no computador da equipe e o
+repositório `fwengemar/CRM-Fw-Engemar` no GitHub. O fluxo é:
+
+1. A alteração é escrita nos arquivos desta pasta
+2. `git add -A && git commit -m "descrição" && git push`
+3. A Vercel detecta o commit na branch `main` e publica em fw-contratos.vercel.app
+
+Nunca commitar `node_modules/` nem `dist/` — o `.gitignore` já cuida disso.
