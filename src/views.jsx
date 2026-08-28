@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import {
   FASES, CORES_FASE, SAUDES, CORES_SAUDE, PRIORIDADES, CORES_PRIORIDADE,
-  money, moneyShort, dt, diasAte,
+  money, moneyShort, dt, diasAte, valorVigente,
 } from './lib'
 import { Pill, SelectPill, Avatar, lumText } from './ui'
 
@@ -72,7 +72,10 @@ export function Tabela({ contratos, perfis, onPatch, onAbrir, onNovo }) {
                           <td className="px-3 py-2"><SelectPill value={c.fase} options={FASES} colors={CORES_FASE} onChange={(v) => onPatch(c.id, { fase: v })} /></td>
                           <td className="px-3 py-2"><SelectPill value={c.saude} options={SAUDES} colors={CORES_SAUDE} onChange={(v) => onPatch(c.id, { saude: v })} /></td>
                           <td className="px-3 py-2"><SelectPill value={c.prioridade} options={PRIORIDADES} colors={CORES_PRIORIDADE} onChange={(v) => onPatch(c.id, { prioridade: v })} /></td>
-                          <td className="px-3 py-2 text-right font-semibold text-slate-600 whitespace-nowrap">{money(c.valor_total)}</td>
+                          <td className="px-3 py-2 text-right whitespace-nowrap">
+                            <div className="font-semibold text-slate-600">{money(valorVigente(c))}</div>
+                            {!c.valor_contratado && c.valor_total && <div className="text-[10px] text-slate-400 leading-none">estimado</div>}
+                          </td>
                           <td className="px-3 py-2 text-center text-slate-500 whitespace-nowrap">{dt(c.data_sessao)}</td>
                           <td className="px-3 py-2 text-center text-slate-500 whitespace-nowrap text-[12px]">
                             {c.vigencia_inicio || c.vigencia_fim ? `${dt(c.vigencia_inicio)} → ${dt(c.vigencia_fim)}` : '—'}
@@ -135,7 +138,7 @@ export function Kanban({ contratos, perfis, onPatch, onAbrir }) {
                         <Avatar nome={resp?.nome} id={resp?.id} size={24} />
                       </div>
                       <div className="flex items-center justify-between mt-2 text-[11px] text-slate-400">
-                        <span>{c.valor_total ? moneyShort(c.valor_total) : '—'}</span>
+                        <span>{valorVigente(c) ? moneyShort(valorVigente(c)) + (c.valor_contratado ? '' : ' est.') : '—'}</span>
                         {d !== null && <span className={d <= 30 ? 'text-[#e2445c] font-semibold' : ''}>{d < 0 ? 'vencido' : `${d} dias`}</span>}
                       </div>
                     </div>
@@ -255,7 +258,7 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
   const ativos = contratos.filter((c) => !['Encerrado', 'Não prosseguir'].includes(c.fase))
   const emExecucao = contratos.filter((c) => c.fase === 'Em execução' || c.fase === 'Contrato assinado')
   const emLicitacao = contratos.filter((c) => c.fase === 'Em licitação' || c.fase === 'Oportunidade')
-  const carteira = emExecucao.reduce((s, c) => s + Number(c.valor_total || 0), 0)
+  const carteira = emExecucao.reduce((s, c) => s + Number(valorVigente(c) || 0), 0)
   const pipeline = emLicitacao.reduce((s, c) => s + Number(c.valor_total || 0), 0)
   const criticos = contratos.filter((c) => c.saude === 'Crítico').length
   const atencao = contratos.filter((c) => c.saude === 'Atenção').length
@@ -341,7 +344,7 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
                 <Avatar nome={p.nome} id={p.id} size={36} />
                 <div>
                   <div className="text-[13px] font-semibold text-slate-700">{p.nome}</div>
-                  <div className="text-[11px] text-slate-400">{meus.length} contrato(s) · {moneyShort(meus.reduce((s, c) => s + Number(c.valor_total || 0), 0))}</div>
+                  <div className="text-[11px] text-slate-400">{meus.length} contrato(s) · {moneyShort(meus.reduce((s, c) => s + Number(valorVigente(c) || 0), 0))}</div>
                 </div>
               </div>
             )

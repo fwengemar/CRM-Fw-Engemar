@@ -78,6 +78,9 @@ export const iniciais = (nome) =>
 
 export const CORES_AVATAR = ['#0073ea', '#00c875', '#a25ddc', '#fdab3d', '#e2445c', '#0086c0']
 
+// valor que vale hoje: o contratado quando existe, senao o estimado
+export const valorVigente = (c) => (c.valor_contratado ?? c.valor_total)
+
 /* ===================== TAREFAS ===================== */
 export const STATUS_TAREFA = ['A fazer', 'Em andamento', 'Em revisão', 'Concluído', 'Cancelado']
 export const CORES_STATUS = {
