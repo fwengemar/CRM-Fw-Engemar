@@ -3,7 +3,7 @@ import {
   supabase, FASES, CORES_FASE, SAUDES, CORES_SAUDE, PRIORIDADES, CORES_PRIORIDADE,
   MODALIDADES, STATUS_MEDICAO, CORES_MEDICAO, TIPOS_ADITIVO, money, dt,
 } from './lib'
-import { Pill, SelectPill, Avatar, Campo, inputCls, Botao } from './ui'
+import { Pill, SelectPill, Avatar, Campo, inputCls, Botao, InputMoeda } from './ui'
 import { ListaTarefasContrato } from './tarefas'
 
 const vazio = {
@@ -164,9 +164,9 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
                 </select>
               </Campo>
               <Campo label="Prazo (meses)"><input type="number" className={inputCls} value={f.prazo_meses || ''} onChange={set('prazo_meses')} /></Campo>
-              <Campo label="Valor estimado (R$)"><input type="number" step="0.01" className={inputCls} value={f.valor_total || ''} onChange={set('valor_total')} placeholder="valor de referência do edital" /></Campo>
-              <Campo label="Valor do contrato (R$)"><input type="number" step="0.01" className={inputCls} value={f.valor_contratado || ''} onChange={set('valor_contratado')} placeholder="valor efetivamente fechado" /></Campo>
-              <Campo label="Valor anual (R$)"><input type="number" step="0.01" className={inputCls} value={f.valor_anual || ''} onChange={set('valor_anual')} /></Campo>
+              <Campo label="Valor estimado (R$)"><InputMoeda className={inputCls} value={f.valor_total} onChange={(v) => setF({ ...f, valor_total: v })} /></Campo>
+              <Campo label="Valor do contrato (R$)"><InputMoeda className={inputCls} value={f.valor_contratado} onChange={(v) => setF({ ...f, valor_contratado: v })} /></Campo>
+              <Campo label="Valor anual (R$)"><InputMoeda className={inputCls} value={f.valor_anual} onChange={(v) => setF({ ...f, valor_anual: v })} /></Campo>
               <Campo label="Data da sessão / disputa"><input type="date" className={inputCls} value={f.data_sessao || ''} onChange={set('data_sessao')} /></Campo>
               <Campo label="Data de assinatura"><input type="date" className={inputCls} value={f.data_assinatura || ''} onChange={set('data_assinatura')} /></Campo>
               <Campo label="Contrato continuado" className="col-span-2">
@@ -207,7 +207,7 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
                     <tr key={m.id} className="border-t border-slate-100">
                       <td className="py-2 w-10">{m.numero}</td>
                       <td><input type="month" value={(m.competencia || '').slice(0, 7)} onChange={(e) => patchMedicao(m.id, { competencia: e.target.value + '-01' })} className="border border-slate-200 rounded px-2 py-1" /></td>
-                      <td className="text-right"><input type="number" step="0.01" value={m.valor || ''} onChange={(e) => patchMedicao(m.id, { valor: e.target.value === '' ? null : Number(e.target.value) })} className="w-28 border border-slate-200 rounded px-2 py-1 text-right" /></td>
+                      <td className="text-right"><InputMoeda value={m.valor} onChange={(v) => patchMedicao(m.id, { valor: v })} className="w-28 border border-slate-200 rounded px-2 py-1" /></td>
                       <td className="text-center px-2"><SelectPill value={m.status} options={STATUS_MEDICAO} colors={CORES_MEDICAO} onChange={(v) => patchMedicao(m.id, { status: v })} /></td>
                       <td className="text-center"><input value={m.nota_fiscal || ''} onChange={(e) => patchMedicao(m.id, { nota_fiscal: e.target.value })} className="w-20 border border-slate-200 rounded px-2 py-1" /></td>
                       <td className="text-right"><button onClick={() => delMedicao(m.id)} className="text-slate-300 hover:text-[#e2445c]">✕</button></td>
@@ -234,7 +234,7 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
                   <select value={a.tipo} onChange={(e) => patchAditivo(a.id, { tipo: e.target.value })} className="col-span-3 border border-slate-200 rounded px-2 py-1">
                     {TIPOS_ADITIVO.map((t) => <option key={t}>{t}</option>)}
                   </select>
-                  <input type="number" step="0.01" value={a.valor || ''} onChange={(e) => patchAditivo(a.id, { valor: e.target.value === '' ? null : Number(e.target.value) })} placeholder="valor" className="col-span-3 border border-slate-200 rounded px-2 py-1 text-right" />
+                  <InputMoeda value={a.valor} onChange={(v) => patchAditivo(a.id, { valor: v })} placeholder="valor" className="col-span-3 border border-slate-200 rounded px-2 py-1" />
                   <input type="date" value={a.nova_vigencia_fim || ''} onChange={(e) => patchAditivo(a.id, { nova_vigencia_fim: e.target.value || null })} className="col-span-3 border border-slate-200 rounded px-2 py-1" />
                   <button onClick={() => delAditivo(a.id)} className="col-span-1 text-slate-300 hover:text-[#e2445c]">✕</button>
                   <input value={a.descricao || ''} onChange={(e) => patchAditivo(a.id, { descricao: e.target.value })} placeholder="descrição" className="col-span-12 border border-slate-200 rounded px-2 py-1" />

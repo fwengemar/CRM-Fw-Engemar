@@ -16,6 +16,15 @@
       ::-webkit-scrollbar-thumb { background:#d0d4e4; border-radius: 8px; }
       ::-webkit-scrollbar-track { background: transparent; }
       .cell-select { -webkit-appearance:none; appearance:none; text-align:center; text-align-last:center; cursor:pointer; }
+      .imprimir-cabecalho { display: none; }
+      @media print {
+        aside, header, .nao-imprimir { display: none !important; }
+        body { background: #fff; }
+        main { overflow: visible !important; }
+        .imprimir-cabecalho { display: block !important; }
+        .quebra-evitar { break-inside: avoid; }
+        @page { margin: 12mm; }
+      }
     </style>
   </head>
   <body>

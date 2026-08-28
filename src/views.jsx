@@ -271,11 +271,26 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
     .filter((c) => c.data_sessao && diasAte(c.data_sessao) >= 0 && c.saude !== 'Perdido')
     .sort((a, b) => diasAte(a.data_sessao) - diasAte(b.data_sessao))
 
+  const concluidos = contratos.filter((c) => c.fase === 'Concluído')
+  const recebido = concluidos.reduce((s, c) => s + Number(c.valor_contratado || 0), 0)
+  const semValor = concluidos.filter((c) => !c.valor_contratado).length
+
   const porFase = FASES.map((f) => ({ fase: f, n: contratos.filter((c) => c.fase === f).length }))
   const maxFase = Math.max(1, ...porFase.map((p) => p.n))
 
   return (
     <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="imprimir-cabecalho">
+          <h2 className="text-lg font-extrabold text-slate-800">FW CRM · Painel de contratos</h2>
+          <p className="text-[12px] text-slate-500">FW Construções e Serviços Marítimos — gerado em {new Date().toLocaleString('pt-BR')}</p>
+        </div>
+        <button onClick={() => window.print()}
+          className="nao-imprimir ml-auto rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] font-semibold text-slate-600 hover:bg-slate-50">
+          Salvar PDF
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <Kpi titulo="Contratos ativos" valor={ativos.length} sub={`${contratos.length} no total${perdidas.length ? ` · ${perdidas.length} perdida(s)` : ''}`} />
         <Kpi titulo="Carteira contratada" valor={moneyShort(carteira)} sub={`${emExecucao.length} assinados / em execução`} cor="#00c875" />
@@ -335,6 +350,42 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
           </div>
         </div>
       </div>
+
+      {concluidos.length > 0 && (
+        <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-5 quebra-evitar">
+          <div className="flex items-baseline justify-between mb-4">
+            <h3 className="text-sm font-bold text-slate-600">Contratos concluídos e recebidos</h3>
+            <span className="text-[13px] font-bold text-[#00c875]">{money(recebido)} recebido
+              {semValor > 0 && <span className="font-normal text-slate-400"> · {semValor} sem valor preenchido</span>}
+            </span>
+          </div>
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="text-[11px] uppercase text-slate-400">
+                <th className="text-left py-1">Contrato</th>
+                <th className="text-left">Órgão / Cliente</th>
+                <th className="text-center">Conclusão</th>
+                <th className="text-right">Valor do contrato</th>
+              </tr>
+            </thead>
+            <tbody>
+              {concluidos.map((c) => (
+                <tr key={c.id} className="border-t border-slate-100">
+                  <td className="py-2 pr-3">
+                    <button onClick={() => onAbrir(c)} className="text-left font-semibold text-slate-700 hover:text-[#0073ea] line-clamp-1">{c.objeto}</button>
+                    <div className="text-[11px] text-slate-400">{c.numero || 'sem número'}</div>
+                  </td>
+                  <td className="text-slate-500 pr-3">{c.orgao || '—'}</td>
+                  <td className="text-center text-slate-500 whitespace-nowrap">{dt(c.vigencia_fim)}</td>
+                  <td className="text-right font-semibold text-slate-600 whitespace-nowrap">
+                    {c.valor_contratado ? money(c.valor_contratado) : <span className="font-normal text-[#e2445c]">falta preencher</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-5">
         <h3 className="text-sm font-bold text-slate-600 mb-4">Carteira por responsável</h3>

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { iniciais, CORES_AVATAR } from './lib'
 
 export function lumText(hex) {
@@ -34,6 +34,28 @@ export function Avatar({ nome, id, size = 28, title }) {
       style={{ width: size, height: size, fontSize: size * 0.38, background: nome ? CORES_AVATAR[idx] : '#c3c6d4' }}>
       {nome ? iniciais(nome) : '?'}
     </span>
+  )
+}
+
+// digita so numeros e vai formatando: 206218798 -> 2.062.187,98
+export function InputMoeda({ value, onChange, className = '', placeholder = '0,00' }) {
+  const formata = (n) =>
+    n === null || n === undefined || n === ''
+      ? ''
+      : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const [texto, setTexto] = useState(formata(value))
+  useEffect(() => { setTexto(formata(value)) }, [value])
+
+  function digitar(e) {
+    const digitos = e.target.value.replace(/\D/g, '').slice(0, 15)
+    if (!digitos) { setTexto(''); onChange(null); return }
+    const n = Number(digitos) / 100
+    setTexto(formata(n))
+    onChange(n)
+  }
+  return (
+    <input inputMode="decimal" value={texto} onChange={digitar} placeholder={placeholder}
+      className={className} style={{ textAlign: 'right' }} />
   )
 }
 
