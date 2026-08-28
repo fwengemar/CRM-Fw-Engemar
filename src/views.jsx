@@ -264,9 +264,8 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
   const criticos = contratos.filter((c) => c.saude === 'Crítico').length
   const atencao = contratos.filter((c) => c.saude === 'Atenção').length
 
-  const CONTINUADOS = ['Contrato', 'Contrato Privado']
   const vencendo = ativos
-    .filter((c) => CONTINUADOS.includes(c.modalidade) && c.vigencia_fim && diasAte(c.vigencia_fim) !== null && diasAte(c.vigencia_fim) <= 90)
+    .filter((c) => c.continuado && c.vigencia_fim && diasAte(c.vigencia_fim) !== null && diasAte(c.vigencia_fim) <= 90)
     .sort((a, b) => diasAte(a.vigencia_fim) - diasAte(b.vigencia_fim))
   const sessoes = contratos
     .filter((c) => c.data_sessao && diasAte(c.data_sessao) >= 0 && c.saude !== 'Perdido')
@@ -302,7 +301,7 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
 
         <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-5">
           <h3 className="text-sm font-bold text-slate-600">Vigências vencendo em 90 dias</h3>
-          <p className="text-[11px] text-slate-400 mb-4">somente contratos continuados (modalidade Contrato)</p>
+          <p className="text-[11px] text-slate-400 mb-4">somente contratos marcados como continuados</p>
           {vencendo.length === 0 && <p className="text-[13px] text-slate-400">Nenhum contrato continuado vencendo nesse período.</p>}
           <div className="space-y-3">
             {vencendo.map((c) => {

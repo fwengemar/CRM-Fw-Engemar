@@ -8,7 +8,7 @@ import { ListaTarefasContrato } from './tarefas'
 
 const vazio = {
   numero: '', objeto: '', orgao: '', modalidade: 'Pregão Eletrônico', processo: '', local: '',
-  fase: 'Oportunidade', saude: 'Em dia', prioridade: 'Média', responsavel_id: '',
+  fase: 'Oportunidade', saude: 'Em dia', prioridade: 'Média', responsavel_id: '', continuado: false,
   valor_total: '', valor_contratado: '', valor_anual: '', data_sessao: '', data_assinatura: '',
   vigencia_inicio: '', vigencia_fim: '', prazo_meses: '', garantia_percentual: '', observacoes: '',
 }
@@ -51,7 +51,8 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
       responsavel_id: f.responsavel_id || null, valor_total: num(f.valor_total), valor_contratado: num(f.valor_contratado), valor_anual: num(f.valor_anual),
       data_sessao: txt(f.data_sessao), data_assinatura: txt(f.data_assinatura),
       vigencia_inicio: txt(f.vigencia_inicio), vigencia_fim: txt(f.vigencia_fim),
-      prazo_meses: num(f.prazo_meses), garantia_percentual: num(f.garantia_percentual), observacoes: txt(f.observacoes),
+      prazo_meses: num(f.prazo_meses), garantia_percentual: num(f.garantia_percentual),
+      continuado: !!f.continuado, observacoes: txt(f.observacoes),
     }
     if (!dados.objeto) { alert('Descreva o objeto do contrato.'); setSalvando(false); return }
     let erro
@@ -168,8 +169,14 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
               <Campo label="Valor anual (R$)"><input type="number" step="0.01" className={inputCls} value={f.valor_anual || ''} onChange={set('valor_anual')} /></Campo>
               <Campo label="Data da sessão / disputa"><input type="date" className={inputCls} value={f.data_sessao || ''} onChange={set('data_sessao')} /></Campo>
               <Campo label="Data de assinatura"><input type="date" className={inputCls} value={f.data_assinatura || ''} onChange={set('data_assinatura')} /></Campo>
-              <Campo label="Início da vigência"><input type="date" className={inputCls} value={f.vigencia_inicio || ''} onChange={set('vigencia_inicio')} /></Campo>
-              <Campo label="Fim da vigência"><input type="date" className={inputCls} value={f.vigencia_fim || ''} onChange={set('vigencia_fim')} /></Campo>
+              <Campo label="Contrato continuado" className="col-span-2">
+                <select className={inputCls} value={f.continuado ? 'sim' : 'nao'} onChange={(e) => setF({ ...f, continuado: e.target.value === 'sim' })}>
+                  <option value="nao">Não — obra ou serviço com prazo de entrega</option>
+                  <option value="sim">Sim — serviço continuado, com vigência a acompanhar</option>
+                </select>
+              </Campo>
+              <Campo label={f.continuado ? 'Início da vigência' : 'Data de início'}><input type="date" className={inputCls} value={f.vigencia_inicio || ''} onChange={set('vigencia_inicio')} /></Campo>
+              <Campo label={f.continuado ? 'Fim da vigência' : 'Data de fim'}><input type="date" className={inputCls} value={f.vigencia_fim || ''} onChange={set('vigencia_fim')} /></Campo>
               <Campo label="Garantia contratual (%)"><input type="number" step="0.01" className={inputCls} value={f.garantia_percentual || ''} onChange={set('garantia_percentual')} /></Campo>
               <Campo label="Observações" className="col-span-2">
                 <textarea rows={5} className={inputCls} value={f.observacoes || ''} onChange={set('observacoes')} />
