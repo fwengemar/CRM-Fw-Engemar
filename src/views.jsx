@@ -255,9 +255,10 @@ function Kpi({ titulo, valor, sub, cor }) {
 }
 
 export function Dashboard({ contratos, perfis, onAbrir }) {
-  const ativos = contratos.filter((c) => !['Encerrado', 'Não prosseguir'].includes(c.fase))
+  const perdidas = contratos.filter((c) => c.saude === 'Perdido')
+  const ativos = contratos.filter((c) => !['Encerrado', 'Não prosseguir'].includes(c.fase) && c.saude !== 'Perdido')
   const emExecucao = contratos.filter((c) => c.fase === 'Em execução' || c.fase === 'Contrato assinado')
-  const emLicitacao = contratos.filter((c) => c.fase === 'Em licitação' || c.fase === 'Oportunidade')
+  const emLicitacao = contratos.filter((c) => (c.fase === 'Em licitação' || c.fase === 'Oportunidade') && c.saude !== 'Perdido')
   const carteira = emExecucao.reduce((s, c) => s + Number(valorVigente(c) || 0), 0)
   const pipeline = emLicitacao.reduce((s, c) => s + Number(c.valor_total || 0), 0)
   const criticos = contratos.filter((c) => c.saude === 'Crítico').length
@@ -267,7 +268,7 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
     .filter((c) => c.vigencia_fim && diasAte(c.vigencia_fim) !== null && diasAte(c.vigencia_fim) <= 90)
     .sort((a, b) => diasAte(a.vigencia_fim) - diasAte(b.vigencia_fim))
   const sessoes = contratos
-    .filter((c) => c.data_sessao && diasAte(c.data_sessao) >= 0)
+    .filter((c) => c.data_sessao && diasAte(c.data_sessao) >= 0 && c.saude !== 'Perdido')
     .sort((a, b) => diasAte(a.data_sessao) - diasAte(b.data_sessao))
 
   const porFase = FASES.map((f) => ({ fase: f, n: contratos.filter((c) => c.fase === f).length }))
@@ -276,7 +277,7 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
   return (
     <div className="p-6 space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <Kpi titulo="Contratos ativos" valor={ativos.length} sub={`${contratos.length} no total`} />
+        <Kpi titulo="Contratos ativos" valor={ativos.length} sub={`${contratos.length} no total${perdidas.length ? ` · ${perdidas.length} perdida(s)` : ''}`} />
         <Kpi titulo="Carteira contratada" valor={moneyShort(carteira)} sub={`${emExecucao.length} assinados / em execução`} cor="#00c875" />
         <Kpi titulo="Pipeline em disputa" valor={moneyShort(pipeline)} sub={`${emLicitacao.length} oportunidades e licitações`} cor="#fdab3d" />
         <Kpi titulo="Precisam de atenção" valor={criticos + atencao} sub={`${criticos} críticos · ${atencao} em atenção`} cor={criticos ? '#e2445c' : '#fdab3d'} />
@@ -338,7 +339,7 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
         <h3 className="text-sm font-bold text-slate-600 mb-4">Carteira por responsável</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {perfis.map((p) => {
-            const meus = contratos.filter((c) => c.responsavel_id === p.id && !['Encerrado', 'Não prosseguir'].includes(c.fase))
+            const meus = contratos.filter((c) => c.responsavel_id === p.id && !['Encerrado', 'Não prosseguir'].includes(c.fase) && c.saude !== 'Perdido')
             return (
               <div key={p.id} className="flex items-center gap-3 rounded-lg border border-slate-100 p-3">
                 <Avatar nome={p.nome} id={p.id} size={36} />

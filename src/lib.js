@@ -25,12 +25,13 @@ export const CORES_FASE = {
   'Não prosseguir': '#e2445c',
 }
 
-export const SAUDES = ['Em dia', 'Atenção', 'Crítico', 'Concluído']
+export const SAUDES = ['Em dia', 'Atenção', 'Crítico', 'Concluído', 'Perdido']
 export const CORES_SAUDE = {
   'Em dia': '#00c875',
   'Atenção': '#fdab3d',
   'Crítico': '#e2445c',
   'Concluído': '#579bfc',
+  'Perdido': '#7e8fa5',
 }
 
 export const PRIORIDADES = ['Baixa', 'Média', 'Alta', 'Urgente']
