@@ -256,7 +256,7 @@ function Kpi({ titulo, valor, sub, cor }) {
 
 export function Dashboard({ contratos, perfis, onAbrir }) {
   const perdidas = contratos.filter((c) => c.saude === 'Perdido')
-  const ativos = contratos.filter((c) => !['Encerrado', 'Não prosseguir'].includes(c.fase) && c.saude !== 'Perdido')
+  const ativos = contratos.filter((c) => !['Concluído', 'Não prosseguir'].includes(c.fase) && c.saude !== 'Perdido')
   const emExecucao = contratos.filter((c) => c.fase === 'Em execução' || c.fase === 'Contrato assinado')
   const emLicitacao = contratos.filter((c) => (c.fase === 'Em licitação' || c.fase === 'Oportunidade') && c.saude !== 'Perdido')
   const carteira = emExecucao.reduce((s, c) => s + Number(valorVigente(c) || 0), 0)
@@ -264,8 +264,9 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
   const criticos = contratos.filter((c) => c.saude === 'Crítico').length
   const atencao = contratos.filter((c) => c.saude === 'Atenção').length
 
+  const CONTINUADOS = ['Contrato', 'Contrato Privado']
   const vencendo = ativos
-    .filter((c) => c.vigencia_fim && diasAte(c.vigencia_fim) !== null && diasAte(c.vigencia_fim) <= 90)
+    .filter((c) => CONTINUADOS.includes(c.modalidade) && c.vigencia_fim && diasAte(c.vigencia_fim) !== null && diasAte(c.vigencia_fim) <= 90)
     .sort((a, b) => diasAte(a.vigencia_fim) - diasAte(b.vigencia_fim))
   const sessoes = contratos
     .filter((c) => c.data_sessao && diasAte(c.data_sessao) >= 0 && c.saude !== 'Perdido')
@@ -300,8 +301,9 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
         </div>
 
         <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-5">
-          <h3 className="text-sm font-bold text-slate-600 mb-4">Vigências vencendo em 90 dias</h3>
-          {vencendo.length === 0 && <p className="text-[13px] text-slate-400">Nenhuma vigência cadastrada vencendo nesse período.</p>}
+          <h3 className="text-sm font-bold text-slate-600">Vigências vencendo em 90 dias</h3>
+          <p className="text-[11px] text-slate-400 mb-4">somente contratos continuados (modalidade Contrato)</p>
+          {vencendo.length === 0 && <p className="text-[13px] text-slate-400">Nenhum contrato continuado vencendo nesse período.</p>}
           <div className="space-y-3">
             {vencendo.map((c) => {
               const d = diasAte(c.vigencia_fim)
@@ -339,7 +341,7 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
         <h3 className="text-sm font-bold text-slate-600 mb-4">Carteira por responsável</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {perfis.map((p) => {
-            const meus = contratos.filter((c) => c.responsavel_id === p.id && !['Encerrado', 'Não prosseguir'].includes(c.fase) && c.saude !== 'Perdido')
+            const meus = contratos.filter((c) => c.responsavel_id === p.id && !['Concluído', 'Não prosseguir'].includes(c.fase) && c.saude !== 'Perdido')
             return (
               <div key={p.id} className="flex items-center gap-3 rounded-lg border border-slate-100 p-3">
                 <Avatar nome={p.nome} id={p.id} size={36} />
@@ -351,7 +353,7 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
             )
           })}
           {(() => {
-            const sem = contratos.filter((c) => !c.responsavel_id && !['Encerrado', 'Não prosseguir'].includes(c.fase))
+            const sem = contratos.filter((c) => !c.responsavel_id && !['Concluído', 'Não prosseguir'].includes(c.fase))
             return sem.length ? (
               <div className="flex items-center gap-3 rounded-lg border border-dashed border-slate-200 p-3">
                 <Avatar nome={null} size={36} />

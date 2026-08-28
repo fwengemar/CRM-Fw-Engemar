@@ -11,7 +11,7 @@ export const FASES = [
   'Homologado',
   'Contrato assinado',
   'Em execução',
-  'Encerrado',
+  'Concluído',
   'Não prosseguir',
 ]
 
@@ -21,7 +21,7 @@ export const CORES_FASE = {
   'Homologado': '#a25ddc',
   'Contrato assinado': '#0086c0',
   'Em execução': '#00c875',
-  'Encerrado': '#7e8fa5',
+  'Concluído': '#7e8fa5',
   'Não prosseguir': '#e2445c',
 }
 
