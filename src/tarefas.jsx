@@ -274,6 +274,154 @@ export function Calendario({ tarefas, contratos, perfis, onAbrir, onAbrirContrat
   )
 }
 
+
+/* ===================== PAINEL DE TAREFAS ===================== */
+function KpiT({ titulo, valor, sub, cor }) {
+  return (
+    <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-4">
+      <div className="text-[11px] uppercase font-semibold text-slate-400">{titulo}</div>
+      <div className="text-2xl font-extrabold mt-1" style={{ color: cor || '#323338' }}>{valor}</div>
+      {sub && <div className="text-[12px] text-slate-400 mt-1">{sub}</div>}
+    </div>
+  )
+}
+
+export function PainelTarefas({ tarefas, perfis, contratos, onAbrir }) {
+  const [emCima, setEmCima] = useState(null)
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+  const abertas = tarefas.filter((t) => !CONCLUIDA(t))
+  const concluidas = tarefas.filter((t) => t.status === 'Concluído')
+  const atrasadas = abertas.filter((t) => t.prazo && diasAte(t.prazo) < 0)
+  const diaDe = (t) => (t.concluida_em || '').slice(0, 10)
+
+  const dias = Array.from({ length: 14 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 13 + i); return iso(d) })
+  const porDia = dias.map((d) => ({ dia: d, n: concluidas.filter((t) => diaDe(t) === d).length }))
+  const maxDia = Math.max(1, ...porDia.map((p) => p.n))
+  const ultimos7 = porDia.slice(-7).reduce((s, p) => s + p.n, 0)
+  const noMes = concluidas.filter((t) => diaDe(t).slice(0, 7) === iso(new Date()).slice(0, 7)).length
+
+  const porStatus = STATUS_TAREFA.map((st) => ({ st, n: tarefas.filter((t) => t.status === st).length }))
+  const maxStatus = Math.max(1, ...porStatus.map((p) => p.n))
+
+  const recentes = [...concluidas].sort((a, b) => (b.concluida_em || '').localeCompare(a.concluida_em || '')).slice(0, 10)
+  const nomeContrato = (id) => { const c = contratos.find((x) => x.id === id); return c ? (c.numero || c.objeto.slice(0, 32)) : 'sem contrato' }
+  const diaCurto = (d) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="imprimir-cabecalho">
+          <h2 className="text-lg font-extrabold text-slate-800">FW CRM · Painel de tarefas</h2>
+          <p className="text-[12px] text-slate-500">FW Construções e Serviços Marítimos — gerado em {new Date().toLocaleString('pt-BR')}</p>
+        </div>
+        <button onClick={() => window.print()}
+          className="nao-imprimir ml-auto rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] font-semibold text-slate-600 hover:bg-slate-50">
+          Salvar PDF
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <KpiT titulo="Concluídas em 7 dias" valor={ultimos7} sub={`${noMes} no mês · ${concluidas.length} no total`} cor="#00c875" />
+        <KpiT titulo="Em aberto" valor={abertas.length} sub={`de ${tarefas.length} tarefas`} />
+        <KpiT titulo="Atrasadas" valor={atrasadas.length} sub={atrasadas.length ? 'passaram do prazo' : 'nenhuma vencida'} cor={atrasadas.length ? '#e2445c' : '#00c875'} />
+        <KpiT titulo="Sem responsável" valor={abertas.filter((t) => !t.responsavel_id).length} sub="tarefas em aberto sem dono" cor={abertas.some((t) => !t.responsavel_id) ? '#fdab3d' : '#323338'} />
+      </div>
+
+      <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-5 quebra-evitar">
+        <h3 className="text-sm font-bold text-slate-600">Tarefas concluídas por dia</h3>
+        <p className="text-[11px] text-slate-400 mb-5">últimos 14 dias</p>
+        <div className="relative flex items-end gap-1.5 h-40">
+          {porDia.map((p) => (
+            <div key={p.dia} className="flex-1 flex flex-col items-center justify-end h-full"
+              onMouseEnter={() => setEmCima(p.dia)} onMouseLeave={() => setEmCima(null)}>
+              {emCima === p.dia && (
+                <div className="absolute -top-1 px-2 py-1 rounded-md bg-slate-800 text-white text-[11px] whitespace-nowrap z-10">
+                  {diaCurto(p.dia)} · {p.n} concluída{p.n === 1 ? '' : 's'}
+                </div>
+              )}
+              <div className="w-full rounded-t transition-all"
+                style={{ height: `${(p.n / maxDia) * 100}%`, minHeight: p.n ? 6 : 2,
+                  background: p.n ? '#00c875' : '#eef1f6', opacity: emCima && emCima !== p.dia ? 0.55 : 1 }} />
+              <span className="text-[10px] text-slate-400 mt-1.5">{diaCurto(p.dia).slice(0, 2)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-5 quebra-evitar">
+          <h3 className="text-sm font-bold text-slate-600 mb-4">Tarefas por status</h3>
+          <div className="space-y-2.5">
+            {porStatus.map(({ st, n }) => (
+              <div key={st} className="flex items-center gap-3">
+                <span className="text-[12px] text-slate-500 w-[110px] shrink-0">{st}</span>
+                <div className="flex-1 h-5 bg-slate-100 rounded-md overflow-hidden">
+                  <div className="h-full rounded-md transition-all" style={{ width: `${(n / maxStatus) * 100}%`, background: CORES_STATUS[st] }} />
+                </div>
+                <span className="text-[12px] font-bold text-slate-500 w-6 text-right">{n}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-5 quebra-evitar">
+          <h3 className="text-sm font-bold text-slate-600 mb-4">Por responsável</h3>
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="text-[11px] uppercase text-slate-400">
+                <th className="text-left py-1">Pessoa</th>
+                <th className="text-center">Concluídas 7d</th>
+                <th className="text-center">Em aberto</th>
+                <th className="text-center">Atrasadas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {perfis.map((p) => {
+                const c7 = concluidas.filter((t) => t.responsavel_id === p.id && porDia.slice(-7).some((d) => d.dia === diaDe(t))).length
+                const ab = abertas.filter((t) => t.responsavel_id === p.id).length
+                const at = atrasadas.filter((t) => t.responsavel_id === p.id).length
+                return (
+                  <tr key={p.id} className="border-t border-slate-100">
+                    <td className="py-2 flex items-center gap-2">
+                      <Avatar nome={p.nome} id={p.id} size={24} />
+                      <span className="text-slate-700">{p.nome}</span>
+                    </td>
+                    <td className="text-center font-semibold text-[#00c875]">{c7}</td>
+                    <td className="text-center font-semibold text-slate-600">{ab}</td>
+                    <td className="text-center font-semibold" style={{ color: at ? '#e2445c' : '#c3c6d4' }}>{at}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-5 quebra-evitar">
+        <h3 className="text-sm font-bold text-slate-600 mb-4">Últimas atividades concluídas</h3>
+        {recentes.length === 0 && <p className="text-[13px] text-slate-400">Nenhuma tarefa concluída ainda.</p>}
+        {recentes.map((t) => {
+          const resp = perfis.find((p) => p.id === t.responsavel_id)
+          return (
+            <button key={t.id} onClick={() => onAbrir(t)} className="w-full text-left flex items-center gap-3 py-2 border-t border-slate-100 hover:bg-slate-50">
+              <span className="text-[#00c875] text-[13px]">✓</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-semibold text-slate-700 line-clamp-1">{t.titulo}</div>
+                <div className="text-[11px] text-slate-400">{nomeContrato(t.contrato_id)}</div>
+              </div>
+              <span className="text-[11px] text-slate-400 whitespace-nowrap">
+                {t.concluida_em ? new Date(t.concluida_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+              </span>
+              <Avatar nome={resp?.nome} id={resp?.id} size={22} />
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 /* ===== lista compacta usada dentro do contrato ===== */
 export function ListaTarefasContrato({ tarefas, perfis, contratos, onPatch, onAbrir }) {
   const raiz = tarefas.filter((t) => !t.tarefa_pai_id)

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { supabase, CONCLUIDA, diasAte } from './lib'
 import { Avatar, Botao, inputCls } from './ui'
 import { Tabela, Kanban, Timeline, Dashboard } from './views'
-import { MinhasTarefas, QuadroTarefas, Calendario } from './tarefas'
+import { MinhasTarefas, QuadroTarefas, Calendario, PainelTarefas } from './tarefas'
 import { Drawer } from './drawer'
 import { TarefaDrawer } from './tarefa-drawer'
 
@@ -48,9 +48,9 @@ function Login() {
 
 const NAV = [
   ['Contratos', [['tabela', 'Tabela', '▤'], ['kanban', 'Quadro', '▦'], ['timeline', 'Timeline', '▭'], ['dashboard', 'Dashboard', '◫']]],
-  ['Tarefas', [['minhas', 'Minhas tarefas', '☑'], ['quadro', 'Quadro de tarefas', '▦'], ['calendario', 'Calendário', '▤']]],
+  ['Tarefas', [['minhas', 'Minhas tarefas', '☑'], ['quadro', 'Quadro de tarefas', '▦'], ['calendario', 'Calendário', '▤'], ['painel', 'Painel de tarefas', '◫']]],
 ]
-const VISOES_TAREFA = ['minhas', 'quadro', 'calendario']
+const VISOES_TAREFA = ['minhas', 'quadro', 'calendario', 'painel']
 
 export default function App() {
   const [sessao, setSessao] = useState(undefined)
@@ -217,6 +217,7 @@ export default function App() {
           {visao === 'timeline' && <Timeline contratos={contratosFiltrados} onAbrir={setAberto} />}
           {visao === 'dashboard' && <Dashboard contratos={contratosFiltrados} perfis={perfis} onAbrir={setAberto} />}
           {visao === 'minhas' && <MinhasTarefas {...propsTarefa} />}
+          {visao === 'painel' && <PainelTarefas tarefas={tarefasFiltradas} perfis={perfis} contratos={contratos} onAbrir={setTarefaAberta} />}
           {visao === 'quadro' && <QuadroTarefas {...propsTarefa} />}
           {visao === 'calendario' && (
             <Calendario tarefas={tarefasFiltradas} contratos={contratos} perfis={perfis}
