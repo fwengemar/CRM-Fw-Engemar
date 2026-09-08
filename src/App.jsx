@@ -57,6 +57,7 @@ export default function App() {
   const [perfis, setPerfis] = useState([])
   const [contratos, setContratos] = useState([])
   const [tarefas, setTarefas] = useState([])
+  const [medicoes, setMedicoes] = useState([])
   const [visao, setVisao] = useState('minhas')
   const [busca, setBusca] = useState('')
   const [filtroResp, setFiltroResp] = useState('')
@@ -71,14 +72,16 @@ export default function App() {
   }, [])
 
   const carregar = useCallback(async () => {
-    const [c, p, t] = await Promise.all([
+    const [c, p, t, m] = await Promise.all([
       supabase.from('contratos').select('*').order('ordem').order('criado_em'),
       supabase.from('perfis').select('*').order('nome'),
       supabase.from('tarefas').select('*').order('prazo', { nullsFirst: false }).order('ordem'),
+      supabase.from('medicoes').select('id, contrato_id, valor, status, competencia'),
     ])
     if (c.data) setContratos(c.data)
     if (p.data) setPerfis(p.data)
     if (t.data) setTarefas(t.data)
+    if (m.data) setMedicoes(m.data)
   }, [])
 
   useEffect(() => {
@@ -215,7 +218,7 @@ export default function App() {
           {visao === 'tabela' && <Tabela {...propsContrato} />}
           {visao === 'kanban' && <Kanban {...propsContrato} />}
           {visao === 'timeline' && <Timeline contratos={contratosFiltrados} onAbrir={setAberto} />}
-          {visao === 'dashboard' && <Dashboard contratos={contratosFiltrados} perfis={perfis} onAbrir={setAberto} />}
+          {visao === 'dashboard' && <Dashboard contratos={contratosFiltrados} perfis={perfis} medicoes={medicoes} onAbrir={setAberto} />}
           {visao === 'minhas' && <MinhasTarefas {...propsTarefa} />}
           {visao === 'painel' && <PainelTarefas tarefas={tarefasFiltradas} perfis={perfis} contratos={contratos} onAbrir={setTarefaAberta} />}
           {visao === 'quadro' && <QuadroTarefas {...propsTarefa} />}

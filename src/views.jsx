@@ -254,7 +254,7 @@ function Kpi({ titulo, valor, sub, cor }) {
   )
 }
 
-export function Dashboard({ contratos, perfis, onAbrir }) {
+export function Dashboard({ contratos, perfis, medicoes = [], onAbrir }) {
   const perdidas = contratos.filter((c) => c.saude === 'Perdido')
   const ativos = contratos.filter((c) => !['Concluído', 'Não prosseguir'].includes(c.fase) && c.saude !== 'Perdido')
   const emExecucao = contratos.filter((c) => c.fase === 'Em execução' || c.fase === 'Contrato assinado')
@@ -271,9 +271,16 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
     .filter((c) => c.data_sessao && diasAte(c.data_sessao) >= 0 && c.saude !== 'Perdido')
     .sort((a, b) => diasAte(a.data_sessao) - diasAte(b.data_sessao))
 
-  const concluidos = contratos.filter((c) => c.fase === 'Concluído')
-  const recebido = concluidos.reduce((s, c) => s + Number(c.valor_contratado || 0), 0)
-  const semValor = concluidos.filter((c) => !c.valor_contratado).length
+  // recebido = medições recebidas quando existem; senão o valor do contrato concluído.
+  // Nunca os dois, para não contar o mesmo dinheiro duas vezes.
+  const recebidoDe = (c) => {
+    const med = medicoes.filter((m) => m.contrato_id === c.id && m.status === 'Recebida')
+    const soma = med.reduce((s, m) => s + Number(m.valor || 0), 0)
+    return { qtd: med.length, porMedicao: soma > 0, valor: soma > 0 ? soma : (c.fase === 'Concluído' ? Number(c.valor_contratado || 0) : 0) }
+  }
+  const recebidos = contratos.map((c) => ({ c, ...recebidoDe(c) })).filter((l) => l.c.fase === 'Concluído' || l.qtd > 0)
+  const recebido = recebidos.reduce((s, l) => s + l.valor, 0)
+  const semValor = recebidos.filter((l) => !l.valor).length
 
   const porFase = FASES.map((f) => ({ fase: f, n: contratos.filter((c) => c.fase === f).length }))
   const maxFase = Math.max(1, ...porFase.map((p) => p.n))
@@ -351,7 +358,7 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
         </div>
       </div>
 
-      {concluidos.length > 0 && (
+      {recebidos.length > 0 && (
         <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-5 quebra-evitar">
           <div className="flex items-baseline justify-between mb-4">
             <h3 className="text-sm font-bold text-slate-600">Contratos concluídos e recebidos</h3>
@@ -364,21 +371,31 @@ export function Dashboard({ contratos, perfis, onAbrir }) {
               <tr className="text-[11px] uppercase text-slate-400">
                 <th className="text-left py-1">Contrato</th>
                 <th className="text-left">Órgão / Cliente</th>
-                <th className="text-center">Conclusão</th>
-                <th className="text-right">Valor do contrato</th>
+                <th className="text-center">Situação</th>
+                <th className="text-right">Recebido</th>
               </tr>
             </thead>
             <tbody>
-              {concluidos.map((c) => (
+              {recebidos.map(({ c, valor, qtd, porMedicao }) => (
                 <tr key={c.id} className="border-t border-slate-100">
                   <td className="py-2 pr-3">
                     <button onClick={() => onAbrir(c)} className="text-left font-semibold text-slate-700 hover:text-[#0073ea] line-clamp-1">{c.objeto}</button>
                     <div className="text-[11px] text-slate-400">{c.numero || 'sem número'}</div>
                   </td>
                   <td className="text-slate-500 pr-3">{c.orgao || '—'}</td>
-                  <td className="text-center text-slate-500 whitespace-nowrap">{dt(c.vigencia_fim)}</td>
-                  <td className="text-right font-semibold text-slate-600 whitespace-nowrap">
-                    {c.valor_contratado ? money(c.valor_contratado) : <span className="font-normal text-[#e2445c]">falta preencher</span>}
+                  <td className="text-center whitespace-nowrap">
+                    <span className="text-[12px] font-semibold" style={{ color: CORES_FASE[c.fase] }}>{c.fase}</span>
+                    {c.fase === 'Concluído' && c.vigencia_fim && <div className="text-[11px] text-slate-400">{dt(c.vigencia_fim)}</div>}
+                  </td>
+                  <td className="text-right whitespace-nowrap">
+                    {valor
+                      ? <>
+                          <div className="font-semibold text-slate-600">{money(valor)}</div>
+                          <div className="text-[10px] text-slate-400 leading-none">
+                            {porMedicao ? `${qtd} medição${qtd > 1 ? 'ões' : ''} recebida${qtd > 1 ? 's' : ''}` : 'valor do contrato'}
+                          </div>
+                        </>
+                      : <span className="text-[#e2445c]">falta preencher</span>}
                   </td>
                 </tr>
               ))}
