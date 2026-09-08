@@ -117,8 +117,18 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
     if (r.error) alert(r.error.message); else onSalvo()
   }
 
-  const abas = novo ? [['detalhes', 'Detalhes']] :
-    [['detalhes', 'Detalhes'], ['tarefas', `Tarefas (${pendentes})`], ['medicoes', `Medições (${medicoes.length})`], ['aditivos', `Aditivos (${aditivos.length})`], ['conversa', `Conversa (${comentarios.length})`], ['atividade', 'Atividade']]
+  // Medições só fazem sentido em contrato continuado. Mas se já houver medição
+  // lançada, a aba continua aparecendo — senão o dado ficaria invisível.
+  const mostraMedicoes = f.continuado || medicoes.length > 0
+  const abas = novo ? [['detalhes', 'Detalhes']] : [
+    ['detalhes', 'Detalhes'],
+    ['tarefas', `Tarefas (${pendentes})`],
+    ...(mostraMedicoes ? [['medicoes', `Medições (${medicoes.length})`]] : []),
+    ['aditivos', `Aditivos (${aditivos.length})`],
+    ['conversa', `Conversa (${comentarios.length})`],
+    ['atividade', 'Atividade'],
+  ]
+  const abaAtual = abas.some(([k]) => k === aba) ? aba : 'detalhes'
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-slate-900/30" onMouseDown={onClose}>
@@ -139,14 +149,14 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
         <div className="px-6 border-b border-slate-100 flex gap-1 overflow-x-auto">
           {abas.map(([k, label]) => (
             <button key={k} onClick={() => setAba(k)}
-              className={'px-3 py-2.5 text-[13px] font-semibold border-b-2 whitespace-nowrap ' + (aba === k ? 'border-[#0073ea] text-[#0073ea]' : 'border-transparent text-slate-400 hover:text-slate-600')}>
+              className={'px-3 py-2.5 text-[13px] font-semibold border-b-2 whitespace-nowrap ' + (abaAtual === k ? 'border-[#0073ea] text-[#0073ea]' : 'border-transparent text-slate-400 hover:text-slate-600')}>
               {label}
             </button>
           ))}
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {aba === 'detalhes' && (
+          {abaAtual === 'detalhes' && (
             <div className="grid grid-cols-2 gap-4">
               <Campo label="Número do contrato / edital"><input className={inputCls} value={f.numero || ''} onChange={set('numero')} placeholder="ex.: CDP nº 15/2026" /></Campo>
               <Campo label="Modalidade">
@@ -184,7 +194,7 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
             </div>
           )}
 
-          {aba === 'tarefas' && (
+          {abaAtual === 'tarefas' && (
             <div>
               <ListaTarefasContrato tarefas={minhasTarefas} perfis={perfis} contratos={contratos} onPatch={onPatchTarefa} onAbrir={onAbrirTarefa} />
               <div className="flex gap-4 mt-4">
@@ -194,7 +204,7 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
             </div>
           )}
 
-          {aba === 'medicoes' && (
+          {abaAtual === 'medicoes' && (
             <div>
               <table className="w-full text-[13px]">
                 <thead><tr className="text-[11px] uppercase text-slate-400">
@@ -226,7 +236,7 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
             </div>
           )}
 
-          {aba === 'aditivos' && (
+          {abaAtual === 'aditivos' && (
             <div>
               {aditivos.map((a) => (
                 <div key={a.id} className="border-t border-slate-100 py-3 grid grid-cols-12 gap-2 items-center text-[13px]">
@@ -245,7 +255,7 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
             </div>
           )}
 
-          {aba === 'conversa' && (
+          {abaAtual === 'conversa' && (
             <div>
               <div className="flex gap-2">
                 <textarea rows={3} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escreva uma atualização para a equipe…" className={inputCls} />
@@ -267,7 +277,7 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
             </div>
           )}
 
-          {aba === 'atividade' && (
+          {abaAtual === 'atividade' && (
             <div className="space-y-3">
               {atividades.map((a) => (
                 <div key={a.id} className="flex gap-3 items-start">
