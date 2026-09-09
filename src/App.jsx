@@ -4,6 +4,7 @@ import { Avatar, Botao, inputCls } from './ui'
 import { Tabela, Kanban, Timeline, Dashboard } from './views'
 import { MinhasTarefas, QuadroTarefas, Calendario, PainelTarefas } from './tarefas'
 import { Drawer } from './drawer'
+import { Avisos } from './avisos'
 import { TarefaDrawer } from './tarefa-drawer'
 
 function Login() {
@@ -213,6 +214,8 @@ export default function App() {
             ))}
           </div>
         </header>
+
+        <Avisos tarefas={tarefas} contratos={contratos} user={user} onAbrir={setTarefaAberta} onPatch={patchTarefa} />
 
         <main className="flex-1 overflow-auto">
           {visao === 'tabela' && <Tabela {...propsContrato} />}
