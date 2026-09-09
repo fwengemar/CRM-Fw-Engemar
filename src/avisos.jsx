@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { CONCLUIDA, diasAte, dt } from './lib'
 import { Botao } from './ui'
 
@@ -11,23 +11,43 @@ const gravou = () => { try { localStorage.setItem(CHAVE, String(Date.now())) } c
 const temNotificacao = () => typeof window !== 'undefined' && 'Notification' in window
 
 export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
+  // relógio de um minuto: é ele que faz o aviso subir na hora marcada
+  const [minuto, setMinuto] = useState(() => new Date().toTimeString().slice(0, 5))
+  useEffect(() => {
+    const id = setInterval(() => setMinuto(new Date().toTimeString().slice(0, 5)), 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  // uma tarefa de hoje com hora marcada só entra no aviso depois que a hora chega
+  const chegouAHora = (t) => {
+    const d = diasAte(t.prazo)
+    if (d < 0) return true
+    if (d > 0) return false
+    const hora = (t.hora_prazo || '').slice(0, 5)
+    return !hora || minuto >= hora
+  }
+
   const pendentes = tarefas
-    .filter((t) => t.responsavel_id === user.id && !CONCLUIDA(t) && t.prazo && diasAte(t.prazo) <= 0)
-    .sort((a, b) => diasAte(a.prazo) - diasAte(b.prazo))
+    .filter((t) => t.responsavel_id === user.id && !CONCLUIDA(t) && t.prazo && chegouAHora(t))
+    .sort((a, b) => diasAte(a.prazo) - diasAte(b.prazo) || (a.hora_prazo || '').localeCompare(b.hora_prazo || ''))
   const atrasadas = pendentes.filter((t) => diasAte(t.prazo) < 0)
   const paraHoje = pendentes.filter((t) => diasAte(t.prazo) === 0)
 
   const [aberto, setAberto] = useState(false)
   const [permissao, setPermissao] = useState(temNotificacao() ? Notification.permission : 'indisponivel')
 
-  // abre a janela ao entrar, e de novo depois do período de silêncio
+  // abre ao entrar e depois do silêncio; e sempre que uma tarefa nova vence,
+  // inclusive na hora marcada — senão o horário escolhido não valeria de nada
+  const chaves = pendentes.map((t) => t.id).join(',')
+  const jaAvisadas = useRef(new Set())
   useEffect(() => {
     if (!pendentes.length) return
-    if (Date.now() - leu() > SILENCIO) setAberto(true)
-  }, [pendentes.length])
+    const novas = pendentes.some((t) => !jaAvisadas.current.has(t.id))
+    if (novas || Date.now() - leu() > SILENCIO) setAberto(true)
+    pendentes.forEach((t) => jaAvisadas.current.add(t.id))
+  }, [chaves])
 
   // notificação do sistema, repetida enquanto a tarefa não for concluída
-  const chaves = pendentes.map((t) => t.id).join(',')
   useEffect(() => {
     if (permissao !== 'granted' || !pendentes.length) return
     const disparar = () => pendentes.forEach((t) => {
@@ -66,7 +86,8 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
           {contrato && <div className="text-[11px] text-slate-400">{contrato}</div>}
         </button>
         <span className="text-[11px] font-semibold whitespace-nowrap" style={{ color: d < 0 ? '#e2445c' : '#fdab3d' }}>
-          {d < 0 ? `${Math.abs(d)} dia${Math.abs(d) > 1 ? 's' : ''} de atraso` : dt(t.prazo)}
+          {d < 0 ? `${Math.abs(d)} dia${Math.abs(d) > 1 ? 's' : ''} de atraso` : 'hoje'}
+          {(t.hora_prazo || '') && ` · ${(t.hora_prazo || '').slice(0, 5)}`}
         </span>
       </div>
     )

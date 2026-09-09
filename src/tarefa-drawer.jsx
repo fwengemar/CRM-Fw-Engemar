@@ -6,7 +6,7 @@ import { SelectPill, Avatar, Campo, inputCls, Botao } from './ui'
 
 const vazia = {
   titulo: '', descricao: '', status: 'A fazer', prioridade: 'Normal', responsavel_id: '',
-  contrato_id: '', data_inicio: '', prazo: '', recorrencia: 'Nenhuma', depende_de_id: '', tarefa_pai_id: null,
+  contrato_id: '', data_inicio: '', prazo: '', hora_prazo: '', recorrencia: 'Nenhuma', depende_de_id: '', tarefa_pai_id: null,
 }
 
 export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, onClose, onSalvo }) {
@@ -45,7 +45,7 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, onClose
     const dados = {
       titulo: f.titulo, descricao: txt(f.descricao), status: f.status, prioridade: f.prioridade,
       responsavel_id: f.responsavel_id || null, contrato_id: f.contrato_id || null,
-      data_inicio: txt(f.data_inicio), prazo: txt(f.prazo), recorrencia: f.recorrencia,
+      data_inicio: txt(f.data_inicio), prazo: txt(f.prazo), hora_prazo: txt(f.hora_prazo), recorrencia: f.recorrencia,
       depende_de_id: f.depende_de_id || null, tarefa_pai_id: f.tarefa_pai_id || null,
     }
     if (!dados.titulo) { alert('Dê um título à tarefa.'); setSalvando(false); return }
@@ -139,7 +139,13 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, onClose
                 </select>
               </Campo>
               <Campo label="Início"><input type="date" className={inputCls} value={f.data_inicio || ''} onChange={set('data_inicio')} /></Campo>
-              <Campo label="Prazo de entrega"><input type="date" className={inputCls} value={f.prazo || ''} onChange={set('prazo')} /></Campo>
+              <Campo label="Prazo de entrega">
+                <div className="flex gap-2">
+                  <input type="date" className={inputCls} value={f.prazo || ''} onChange={set('prazo')} />
+                  <input type="time" className={inputCls + ' w-28'} value={(f.hora_prazo || '').slice(0, 5)} onChange={set('hora_prazo')}
+                    title="Hora do aviso (opcional)" />
+                </div>
+              </Campo>
               <Campo label="Recorrência">
                 <select className={inputCls} value={f.recorrencia} onChange={set('recorrencia')}>
                   {RECORRENCIAS.map((r) => <option key={r}>{r}</option>)}

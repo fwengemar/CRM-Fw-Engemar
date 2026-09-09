@@ -13,7 +13,8 @@ function PrazoTag({ tarefa }) {
   if (!tarefa.prazo) return <span className="text-[11px] text-slate-300">sem prazo</span>
   const d = diasAte(tarefa.prazo)
   const cor = CONCLUIDA(tarefa) ? '#c3c6d4' : d < 0 ? '#e2445c' : d === 0 ? '#fdab3d' : d <= 7 ? '#7b68ee' : '#9aa3b2'
-  const txt = d < 0 ? `${Math.abs(d)}d atrasada` : d === 0 ? 'hoje' : dt(tarefa.prazo)
+  const hora = (tarefa.hora_prazo || '').slice(0, 5)
+  const txt = (d < 0 ? `${Math.abs(d)}d atrasada` : d === 0 ? 'hoje' : dt(tarefa.prazo)) + (hora ? ` · ${hora}` : '')
   return <span className="text-[11px] font-semibold" style={{ color: cor }}>{txt}</span>
 }
 
