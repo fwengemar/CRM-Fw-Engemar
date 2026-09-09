@@ -14,8 +14,16 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
   // relógio de um minuto: é ele que faz o aviso subir na hora marcada
   const [minuto, setMinuto] = useState(() => new Date().toTimeString().slice(0, 5))
   useEffect(() => {
-    const id = setInterval(() => setMinuto(new Date().toTimeString().slice(0, 5)), 60 * 1000)
-    return () => clearInterval(id)
+    const bater = () => setMinuto(new Date().toTimeString().slice(0, 5))
+    const id = setInterval(bater, 15 * 1000)
+    // ao voltar para a aba, confere na hora em vez de esperar o próximo tique
+    document.addEventListener('visibilitychange', bater)
+    window.addEventListener('focus', bater)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', bater)
+      window.removeEventListener('focus', bater)
+    }
   }, [])
 
   // uma tarefa de hoje com hora marcada só entra no aviso depois que a hora chega
@@ -38,13 +46,21 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
 
   // abre ao entrar e depois do silêncio; e sempre que uma tarefa nova vence,
   // inclusive na hora marcada — senão o horário escolhido não valeria de nada
-  const chaves = pendentes.map((t) => t.id).join(',')
+  // a identidade inclui prazo e hora: mexer na data ou na hora faz a tarefa avisar de novo
+  const marca = (t) => `${t.id}|${t.prazo}|${(t.hora_prazo || '').slice(0, 5)}`
+  const chaves = pendentes.map(marca).join(',')
   const jaAvisadas = useRef(new Set())
   useEffect(() => {
-    if (!pendentes.length) return
-    const novas = pendentes.some((t) => !jaAvisadas.current.has(t.id))
+    const atuais = pendentes.map(marca)
+    // quem saiu da lista (concluída, adiada ou com hora ainda por vir) volta a
+    // contar como nova quando entrar outra vez — senão o horário não avisaria
+    Array.from(jaAvisadas.current).forEach((k) => {
+      if (!atuais.includes(k)) jaAvisadas.current.delete(k)
+    })
+    if (!atuais.length) return
+    const novas = atuais.some((k) => !jaAvisadas.current.has(k))
     if (novas || Date.now() - leu() > SILENCIO) setAberto(true)
-    pendentes.forEach((t) => jaAvisadas.current.add(t.id))
+    atuais.forEach((k) => jaAvisadas.current.add(k))
   }, [chaves])
 
   // notificação do sistema, repetida enquanto a tarefa não for concluída
