@@ -1,22 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { CONCLUIDA, diasAte, dt } from './lib'
+import { CONCLUIDA, diasAte } from './lib'
 import { Botao } from './ui'
 
-const CHAVE = 'fwcrm_avisos_dispensado_em'
 const INTERVALO_REPETICAO = 30 * 60 * 1000  // reavisa a cada 30 min com a aba aberta
 const SILENCIO = 4 * 60 * 60 * 1000         // fechar a janela silencia por 4 horas
 
-const leu = () => { try { return Number(localStorage.getItem(CHAVE) || 0) } catch { return 0 } }
-const gravou = () => { try { localStorage.setItem(CHAVE, String(Date.now())) } catch {} }
+// as chaves levam o id do usuario: cada pessoa tem o seu silencio e o seu adiamento,
+// senao quem usa o mesmo navegador herda o que o outro fechou
+const chaveDispensa = (uid) => `fwcrm_avisos_dispensado_em:${uid}`
+const chaveAdiado = (uid) => `fwcrm_avisos_adiado_ate:${uid}`
+const ler = (k) => { try { return Number(localStorage.getItem(k) || 0) } catch { return 0 } }
+const gravar = (k, v) => { try { localStorage.setItem(k, String(v)) } catch {} }
 const temNotificacao = () => typeof window !== 'undefined' && 'Notification' in window
 
 export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
-  // relógio de um minuto: é ele que faz o aviso subir na hora marcada
-  const [minuto, setMinuto] = useState(() => new Date().toTimeString().slice(0, 5))
+  // relogio: e ele que faz o aviso subir na hora marcada e o adiamento vencer
+  const [agora, setAgora] = useState(() => Date.now())
   useEffect(() => {
-    const bater = () => setMinuto(new Date().toTimeString().slice(0, 5))
+    const bater = () => setAgora(Date.now())
     const id = setInterval(bater, 15 * 1000)
-    // ao voltar para a aba, confere na hora em vez de esperar o próximo tique
+    // ao voltar para a aba, confere na hora em vez de esperar o proximo tique:
+    // o navegador congela os temporizadores de abas em segundo plano
     document.addEventListener('visibilitychange', bater)
     window.addEventListener('focus', bater)
     return () => {
@@ -25,8 +29,9 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
       window.removeEventListener('focus', bater)
     }
   }, [])
+  const minuto = new Date(agora).toTimeString().slice(0, 5)
 
-  // uma tarefa de hoje com hora marcada só entra no aviso depois que a hora chega
+  // uma tarefa de hoje com hora marcada so entra no aviso depois que a hora chega
   const chegouAHora = (t) => {
     const d = diasAte(t.prazo)
     if (d < 0) return true
@@ -42,48 +47,65 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
   const paraHoje = pendentes.filter((t) => diasAte(t.prazo) === 0)
 
   const [aberto, setAberto] = useState(false)
+  const [adiadoAte, setAdiadoAte] = useState(0)
   const [permissao, setPermissao] = useState(temNotificacao() ? Notification.permission : 'indisponivel')
 
-  // abre ao entrar e depois do silêncio; e sempre que uma tarefa nova vence,
-  // inclusive na hora marcada — senão o horário escolhido não valeria de nada
+  // trocou de usuario no mesmo navegador: recomeca do zero
+  const jaAvisadas = useRef(new Set())
+  useEffect(() => {
+    jaAvisadas.current = new Set()
+    setAberto(false)
+    setAdiadoAte(ler(chaveAdiado(user.id)))
+  }, [user.id])
+
   // a identidade inclui prazo e hora: mexer na data ou na hora faz a tarefa avisar de novo
   const marca = (t) => `${t.id}|${t.prazo}|${(t.hora_prazo || '').slice(0, 5)}`
   const chaves = pendentes.map(marca).join(',')
-  const jaAvisadas = useRef(new Set())
+  const adiado = agora < adiadoAte
+
   useEffect(() => {
     const atuais = pendentes.map(marca)
-    // quem saiu da lista (concluída, adiada ou com hora ainda por vir) volta a
-    // contar como nova quando entrar outra vez — senão o horário não avisaria
+    // quem saiu da lista (concluida, adiada ou com hora ainda por vir) volta a
+    // contar como nova quando entrar outra vez — senao o horario nao avisaria
     Array.from(jaAvisadas.current).forEach((k) => {
       if (!atuais.includes(k)) jaAvisadas.current.delete(k)
     })
-    if (!atuais.length) return
+    if (!atuais.length || adiado) return
     const novas = atuais.some((k) => !jaAvisadas.current.has(k))
-    if (novas || Date.now() - leu() > SILENCIO) setAberto(true)
-    atuais.forEach((k) => jaAvisadas.current.add(k))
-  }, [chaves])
+    if (novas || Date.now() - ler(chaveDispensa(user.id)) > SILENCIO) {
+      setAberto(true)
+      atuais.forEach((k) => jaAvisadas.current.add(k))
+    }
+  }, [chaves, agora, adiado, user.id])
 
-  // notificação do sistema, repetida enquanto a tarefa não for concluída
+  // notificacao do sistema, repetida enquanto a tarefa nao for concluida
   useEffect(() => {
-    if (permissao !== 'granted' || !pendentes.length) return
+    if (permissao !== 'granted' || !pendentes.length || adiado) return
     const disparar = () => pendentes.forEach((t) => {
       try {
         new Notification(diasAte(t.prazo) < 0 ? 'FW CRM · tarefa atrasada' : 'FW CRM · vence hoje', {
-          body: t.titulo, tag: 'fwcrm-' + t.id, icon: '/logo.png',
+          body: t.titulo, tag: 'fwcrm-' + t.id, renotify: true, icon: '/logo.png',
         })
       } catch {}
     })
     disparar()
     const id = setInterval(disparar, INTERVALO_REPETICAO)
     return () => clearInterval(id)
-  }, [permissao, chaves])
+  }, [permissao, chaves, adiado])
 
   async function pedirPermissao() {
     if (!temNotificacao()) return
     try { setPermissao(await Notification.requestPermission()) } catch {}
   }
 
-  function fechar() { gravou(); setAberto(false) }
+  function fechar() { gravar(chaveDispensa(user.id), Date.now()); setAberto(false) }
+
+  function adiar(minutos) {
+    const ate = Date.now() + minutos * 60 * 1000
+    gravar(chaveAdiado(user.id), ate)
+    setAdiadoAte(ate)
+    setAberto(false)
+  }
 
   const nomeContrato = (id) => {
     const c = contratos.find((x) => x.id === id)
@@ -109,6 +131,8 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
     )
   }
 
+  const faltamParaVoltar = Math.max(1, Math.round((adiadoAte - agora) / 60000))
+
   return (
     <>
       {pendentes.length > 0 && (
@@ -119,7 +143,14 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
             {atrasadas.length > 0 && <b style={{ color: '#e2445c' }}>{atrasadas.length} atrasada{atrasadas.length > 1 ? 's' : ''}</b>}
             {atrasadas.length > 0 && paraHoje.length > 0 && ' · '}
             {paraHoje.length > 0 && <b style={{ color: '#a16207' }}>{paraHoje.length} vence{paraHoje.length > 1 ? 'm' : ''} hoje</b>}
+            {adiado && <span className="text-slate-400"> · adiado por {faltamParaVoltar} min</span>}
           </span>
+          {permissao === 'default' && (
+            <button onClick={pedirPermissao}
+              className="rounded-lg border border-[#0073ea] text-[#0073ea] font-semibold px-2.5 py-1 text-[12px] hover:bg-[#0073ea] hover:text-white">
+              Ativar avisos na tela do computador
+            </button>
+          )}
           <button onClick={() => setAberto(true)} className="ml-auto font-semibold text-[#0073ea] hover:underline">ver</button>
         </div>
       )}
@@ -152,15 +183,21 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
               )}
             </div>
 
-            <div className="flex items-center gap-2 mt-5 pt-4 border-t border-slate-100">
+            <div className="flex flex-wrap items-center gap-2 mt-5 pt-4 border-t border-slate-100">
+              <span className="text-[12px] text-slate-400">Lembrar de novo em</span>
+              <button onClick={() => adiar(5)} className="rounded-lg border border-slate-200 px-2.5 py-1 text-[12px] font-semibold text-slate-600 hover:bg-slate-50">5 min</button>
+              <button onClick={() => adiar(10)} className="rounded-lg border border-slate-200 px-2.5 py-1 text-[12px] font-semibold text-slate-600 hover:bg-slate-50">10 min</button>
+              <div className="ml-auto"><Botao variante="neutro" onClick={fechar}>Fechar</Botao></div>
+            </div>
+
+            <div className="mt-3 text-[12px]">
               {permissao === 'default' && (
-                <button onClick={pedirPermissao} className="text-[13px] font-semibold text-[#0073ea] hover:underline">
+                <button onClick={pedirPermissao} className="font-semibold text-[#0073ea] hover:underline">
                   Ativar avisos na tela do computador
                 </button>
               )}
-              {permissao === 'granted' && <span className="text-[12px] text-slate-400">Avisos na tela ativados</span>}
-              {permissao === 'denied' && <span className="text-[12px] text-slate-400">Avisos bloqueados no navegador</span>}
-              <div className="ml-auto"><Botao variante="neutro" onClick={fechar}>Fechar</Botao></div>
+              {permissao === 'granted' && <span className="text-slate-400">Avisos na tela ativados neste computador</span>}
+              {permissao === 'denied' && <span className="text-slate-400">Avisos bloqueados no navegador — libere no cadeado da barra de endereço</span>}
             </div>
           </div>
         </div>
