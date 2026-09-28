@@ -45,6 +45,9 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
     .sort((a, b) => diasAte(a.prazo) - diasAte(b.prazo) || (a.hora_prazo || '').localeCompare(b.hora_prazo || ''))
   const atrasadas = pendentes.filter((t) => diasAte(t.prazo) < 0)
   const paraHoje = pendentes.filter((t) => diasAte(t.prazo) === 0)
+  // so tarefa com hora marcada interrompe a pessoa: a janela sobe sozinha e a
+  // notificacao dispara por ela. As sem hora ficam apenas na faixa do topo.
+  const comHora = pendentes.filter((t) => (t.hora_prazo || ''))
 
   const [aberto, setAberto] = useState(false)
   const [adiadoAte, setAdiadoAte] = useState(0)
@@ -60,11 +63,11 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
 
   // a identidade inclui prazo e hora: mexer na data ou na hora faz a tarefa avisar de novo
   const marca = (t) => `${t.id}|${t.prazo}|${(t.hora_prazo || '').slice(0, 5)}`
-  const chaves = pendentes.map(marca).join(',')
+  const chaves = comHora.map(marca).join(',')
   const adiado = agora < adiadoAte
 
   useEffect(() => {
-    const atuais = pendentes.map(marca)
+    const atuais = comHora.map(marca)
     // quem saiu da lista (concluida, adiada ou com hora ainda por vir) volta a
     // contar como nova quando entrar outra vez — senao o horario nao avisaria
     Array.from(jaAvisadas.current).forEach((k) => {
@@ -80,8 +83,8 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
 
   // notificacao do sistema, repetida enquanto a tarefa nao for concluida
   useEffect(() => {
-    if (permissao !== 'granted' || !pendentes.length || adiado) return
-    const disparar = () => pendentes.forEach((t) => {
+    if (permissao !== 'granted' || !comHora.length || adiado) return
+    const disparar = () => comHora.forEach((t) => {
       try {
         new Notification(diasAte(t.prazo) < 0 ? 'FW CRM · tarefa atrasada' : 'FW CRM · vence hoje', {
           body: t.titulo, tag: 'fwcrm-' + t.id, renotify: true, icon: '/logo.png',

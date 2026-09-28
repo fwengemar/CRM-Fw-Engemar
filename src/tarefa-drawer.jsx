@@ -145,6 +145,9 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, onClose
                   <input type="time" className={inputCls + ' w-28'} value={(f.hora_prazo || '').slice(0, 5)} onChange={set('hora_prazo')}
                     title="Hora do aviso (opcional)" />
                 </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Com hora marcada, o aviso sobe em popup na hora. Sem hora, a tarefa só aparece na faixa do topo.
+                </p>
               </Campo>
               <Campo label="Recorrência">
                 <select className={inputCls} value={f.recorrencia} onChange={set('recorrencia')}>
