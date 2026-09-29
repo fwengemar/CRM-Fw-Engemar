@@ -55,7 +55,7 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, onClose
     setSalvando(false)
     if (r.error) { alert('Erro ao salvar: ' + r.error.message); return }
     onSalvo()
-    if (nova) onClose()
+    onClose()
   }
 
   async function excluir() {

@@ -65,6 +65,14 @@ export default function App() {
   const [aberto, setAberto] = useState(null)
   const [tarefaAberta, setTarefaAberta] = useState(null)
   const [menu, setMenu] = useState(false)
+  // tema fica no navegador: cada pessoa escolhe o seu, na sua maquina
+  const [tema, setTema] = useState(() => {
+    try { return localStorage.getItem('fwcrm_tema') || 'claro' } catch { return 'claro' }
+  })
+  useEffect(() => {
+    document.documentElement.classList.toggle('escuro', tema === 'escuro')
+    try { localStorage.setItem('fwcrm_tema', tema) } catch {}
+  }, [tema])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSessao(data.session))
@@ -202,6 +210,11 @@ export default function App() {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 p-3 z-30">
                   <div className="text-[13px] font-semibold text-slate-700">{meuPerfil?.nome}</div>
                   <div className="text-[11px] text-slate-400 mb-3">{user.email}</div>
+                  <button onClick={() => setTema(tema === 'escuro' ? 'claro' : 'escuro')}
+                    className="w-full flex items-center gap-2 text-left text-[13px] font-semibold text-slate-600 hover:bg-slate-50 rounded px-2 py-1.5 mb-1">
+                    <span className="text-slate-400">{tema === 'escuro' ? '☀' : '☾'}</span>
+                    <span>{tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}</span>
+                  </button>
                   <button onClick={() => supabase.auth.signOut()} className="w-full text-left text-[13px] text-[#e2445c] font-semibold hover:bg-slate-50 rounded px-2 py-1.5">Sair</button>
                 </div>
               )}

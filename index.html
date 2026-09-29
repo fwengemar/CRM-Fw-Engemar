@@ -16,6 +16,38 @@
       ::-webkit-scrollbar-thumb { background:#d0d4e4; border-radius: 8px; }
       ::-webkit-scrollbar-track { background: transparent; }
       .cell-select { -webkit-appearance:none; appearance:none; text-align:center; text-align-last:center; cursor:pointer; }
+
+      /* modo escuro: remapeia a paleta neutra do Tailwind. As cores de fase,
+         status e prioridade continuam as mesmas, para nao perder a leitura. */
+      html.escuro { color-scheme: dark; }
+      .escuro body { background:#0d1420; }
+      .escuro .bg-white { background-color:#161f2e; }
+      .escuro .bg-slate-50 { background-color:#1a2434; }
+      .escuro .bg-slate-100 { background-color:#22304a; }
+      .escuro .bg-slate-200 { background-color:#2b3a52; }
+      .escuro .hover\:bg-slate-50:hover { background-color:#1f2a3c; }
+      .escuro .hover\:bg-slate-100:hover { background-color:#26324a; }
+      .escuro .text-slate-800 { color:#e9eef8; }
+      .escuro .text-slate-700 { color:#dde4f0; }
+      .escuro .text-slate-600 { color:#c5cee0; }
+      .escuro .text-slate-500 { color:#a7b2c6; }
+      .escuro .text-slate-400 { color:#8b97ad; }
+      .escuro .text-slate-300 { color:#76829a; }
+      .escuro .border-slate-50 { border-color:#1e2838; }
+      .escuro .border-slate-100 { border-color:#243044; }
+      .escuro .border-slate-200 { border-color:#2c3a52; }
+      .escuro .border-slate-300 { border-color:#3a4a66; }
+      .escuro input, .escuro textarea, .escuro select { background-color:#1a2434; color:#e9eef8; }
+      .escuro input::placeholder, .escuro textarea::placeholder { color:#7c879c; }
+      .escuro option { background:#1a2434 !important; color:#e9eef8 !important; }
+      .escuro ::-webkit-scrollbar-thumb { background:#33405c; }
+      /* impressao sai sempre em claro, senao o PDF fica ilegivel */
+      @media print {
+        .escuro body, .escuro .bg-white, .escuro .bg-slate-50, .escuro .bg-slate-100 { background:#fff !important; }
+        .escuro .text-slate-800, .escuro .text-slate-700, .escuro .text-slate-600 { color:#1f2937 !important; }
+        .escuro .text-slate-500, .escuro .text-slate-400, .escuro .text-slate-300 { color:#6b7280 !important; }
+        .escuro .border-slate-50, .escuro .border-slate-100, .escuro .border-slate-200 { border-color:#e5e7eb !important; }
+      }
       .imprimir-cabecalho { display: none; }
       @media print {
         aside, header, .nao-imprimir { display: none !important; }

@@ -61,7 +61,7 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
     setSalvando(false)
     if (erro) return alert('Erro ao salvar: ' + erro.message)
     onSalvo()
-    if (novo) onClose()
+    onClose()
   }
 
   async function excluir() {

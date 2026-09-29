@@ -11,6 +11,7 @@ export const FASES = [
   'Homologado',
   'Contrato assinado',
   'Em execução',
+  'Stand-by',
   'Concluído',
   'Não prosseguir',
 ]
@@ -21,15 +22,17 @@ export const CORES_FASE = {
   'Homologado': '#a25ddc',
   'Contrato assinado': '#0086c0',
   'Em execução': '#00c875',
+  'Stand-by': '#ffcb00',
   'Concluído': '#7e8fa5',
   'Não prosseguir': '#e2445c',
 }
 
-export const SAUDES = ['Em dia', 'Atenção', 'Crítico', 'Concluído', 'Perdido']
+export const SAUDES = ['Em dia', 'Atenção', 'Crítico', 'Stand-by', 'Concluído', 'Perdido']
 export const CORES_SAUDE = {
   'Em dia': '#00c875',
   'Atenção': '#fdab3d',
   'Crítico': '#e2445c',
+  'Stand-by': '#ffcb00',
   'Concluído': '#579bfc',
   'Perdido': '#7e8fa5',
 }
