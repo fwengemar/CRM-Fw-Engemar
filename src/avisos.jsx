@@ -40,8 +40,9 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
     return !hora || minuto >= hora
   }
 
+  // tarefa em revisao ja saiu da mao de quem executa: fica na lista, mas nao avisa
   const pendentes = tarefas
-    .filter((t) => t.responsavel_id === user.id && !CONCLUIDA(t) && t.prazo && chegouAHora(t))
+    .filter((t) => t.responsavel_id === user.id && !CONCLUIDA(t) && t.status !== 'Em revisão' && t.prazo && chegouAHora(t))
     .sort((a, b) => diasAte(a.prazo) - diasAte(b.prazo) || (a.hora_prazo || '').localeCompare(b.hora_prazo || ''))
   const atrasadas = pendentes.filter((t) => diasAte(t.prazo) < 0)
   const paraHoje = pendentes.filter((t) => diasAte(t.prazo) === 0)

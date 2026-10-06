@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   supabase, STATUS_TAREFA, CORES_STATUS, PRIO_TAREFA, CORES_PRIO, RECORRENCIAS, CONCLUIDA,
+  pedirNotaConclusao,
 } from './lib'
 import { SelectPill, Avatar, Campo, inputCls, Botao } from './ui'
 
@@ -49,6 +50,11 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, onClose
       depende_de_id: f.depende_de_id || null, tarefa_pai_id: f.tarefa_pai_id || null,
     }
     if (!dados.titulo) { alert('Dê um título à tarefa.'); setSalvando(false); return }
+    if (!nova && dados.status === 'Concluído' && tarefa.status !== 'Concluído') {
+      const nota = pedirNotaConclusao(dados.titulo)
+      if (!nota) { setSalvando(false); return }   // desistiu: nada e salvo
+      Object.assign(dados, nota)
+    }
     const r = nova
       ? await supabase.from('tarefas').insert({ ...dados, criado_por: user.id })
       : await supabase.from('tarefas').update(dados).eq('id', tarefa.id)

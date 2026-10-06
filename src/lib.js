@@ -99,6 +99,14 @@ export const CORES_PRIO = { 'Baixa': '#b5bbc8', 'Normal': '#579bfc', 'Alta': '#f
 export const RECORRENCIAS = ['Nenhuma', 'Diária', 'Semanal', 'Quinzenal', 'Mensal', 'Trimestral']
 
 export const CONCLUIDA = (t) => t.status === 'Concluído' || t.status === 'Cancelado'
+
+// ao concluir, pergunta o que foi feito. A nota vai junto no mesmo update:
+// o gatilho do banco grava no historico do contrato e como comentario da tarefa.
+// Devolve null quando a pessoa desiste — ai a conclusao nao acontece.
+export function pedirNotaConclusao(titulo) {
+  const r = window.prompt(`Concluir "${titulo}"\n\nO que foi feito? (uma linha; pode deixar em branco)`, '')
+  return r === null ? null : { nota_conclusao: r.trim() || null }
+}
 export const grupoPrazo = (t) => {
   if (CONCLUIDA(t)) return 'Concluídas'
   const d = diasAte(t.prazo)

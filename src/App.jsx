@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { supabase, CONCLUIDA, diasAte } from './lib'
+import { supabase, CONCLUIDA, diasAte, pedirNotaConclusao } from './lib'
 import { Avatar, Botao, inputCls } from './ui'
 import { Tabela, Kanban, Timeline, Dashboard } from './views'
 import { MinhasTarefas, QuadroTarefas, Calendario, PainelTarefas } from './tarefas'
@@ -111,6 +111,12 @@ export default function App() {
   }
 
   async function patchTarefa(id, dados) {
+    const atual = tarefas.find((t) => t.id === id)
+    if (dados.status === 'Concluído' && atual && atual.status !== 'Concluído') {
+      const nota = pedirNotaConclusao(atual.titulo)
+      if (!nota) return            // desistiu: a tarefa continua como estava
+      dados = { ...dados, ...nota }
+    }
     setTarefas((ts) => ts.map((t) => (t.id === id ? { ...t, ...dados } : t)))
     const { error } = await supabase.from('tarefas').update(dados).eq('id', id)
     if (error) alert('Erro ao salvar: ' + error.message)
