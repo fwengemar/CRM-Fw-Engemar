@@ -10,7 +10,7 @@ const vazia = {
   contrato_id: '', data_inicio: '', prazo: '', hora_prazo: '', recorrencia: 'Nenhuma', depende_de_id: '', tarefa_pai_id: null,
 }
 
-export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, onClose, onSalvo }) {
+export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor = true, onClose, onSalvo }) {
   const nova = !tarefa?.id
   const [f, setF] = useState({ ...vazia, ...(tarefa || {}) })
   const [aba, setAba] = useState('detalhes')
@@ -64,9 +64,11 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, onClose
     onClose()
   }
 
+  // nao apaga: manda para a lixeira, de onde da para restaurar inteiro
   async function excluir() {
-    if (!confirm('Excluir esta tarefa, suas subtarefas e o checklist?')) return
-    const { error } = await supabase.from('tarefas').delete().eq('id', tarefa.id)
+    if (!confirm(`Mover "${f.titulo || 'esta tarefa'}" para a lixeira?\n\nSubtarefas, checklist e comentários vão junto e podem ser restaurados em Sistema › Lixeira.`)) return
+    const { error } = await supabase.from('tarefas')
+      .update({ excluido_em: new Date().toISOString(), excluido_por: user.id }).eq('id', tarefa.id)
     if (error) { alert(error.message); return }
     onSalvo(); onClose()
   }
@@ -267,10 +269,10 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, onClose
         </div>
 
         <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between">
-          {!nova ? <Botao variante="perigo" onClick={excluir}>Excluir</Botao> : <span />}
+          {!nova && editor ? <Botao variante="perigo" onClick={excluir}>Excluir</Botao> : <span />}
           <div className="flex gap-2">
             <Botao variante="neutro" onClick={onClose}>Fechar</Botao>
-            <Botao onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : nova ? 'Criar tarefa' : 'Salvar alterações'}</Botao>
+            {editor && <Botao onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : nova ? 'Criar tarefa' : 'Salvar alterações'}</Botao>}
           </div>
         </div>
       </div>

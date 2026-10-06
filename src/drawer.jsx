@@ -13,7 +13,7 @@ const vazio = {
   vigencia_inicio: '', vigencia_fim: '', prazo_meses: '', garantia_percentual: '', observacoes: '',
 }
 
-export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], onAbrirTarefa, onNovaTarefa, onPatchTarefa, onClose, onSalvo }) {
+export function Drawer({ contrato, perfis, user, editor = true, tarefas = [], contratos = [], onAbrirTarefa, onNovaTarefa, onPatchTarefa, onClose, onSalvo }) {
   const novo = !contrato?.id
   const [f, setF] = useState({ ...vazio, ...(contrato || {}) })
   const [aba, setAba] = useState('detalhes')
@@ -64,9 +64,12 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
     onClose()
   }
 
+  // nao apaga: manda para a lixeira, de onde da para restaurar inteiro
   async function excluir() {
-    if (!confirm('Excluir este contrato e todos os seus registros?')) return
-    const { error } = await supabase.from('contratos').delete().eq('id', contrato.id)
+    const rotulo = (f.numero ? f.numero + ' · ' : '') + (f.objeto || 'este contrato')
+    if (!confirm(`Mover "${rotulo}" para a lixeira?\n\nMedições, aditivos, tarefas, comentários e histórico vão junto e podem ser restaurados depois, em Sistema › Lixeira.`)) return
+    const { error } = await supabase.from('contratos')
+      .update({ excluido_em: new Date().toISOString(), excluido_por: user.id }).eq('id', contrato.id)
     if (error) return alert(error.message)
     onSalvo(); onClose()
   }
@@ -295,10 +298,10 @@ export function Drawer({ contrato, perfis, user, tarefas = [], contratos = [], o
         </div>
 
         <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between">
-          {!novo ? <Botao variante="perigo" onClick={excluir}>Excluir</Botao> : <span />}
+          {!novo && editor ? <Botao variante="perigo" onClick={excluir}>Excluir</Botao> : <span />}
           <div className="flex gap-2">
             <Botao variante="neutro" onClick={onClose}>Fechar</Botao>
-            <Botao onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : novo ? 'Criar contrato' : 'Salvar alterações'}</Botao>
+            {editor && <Botao onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : novo ? 'Criar contrato' : 'Salvar alterações'}</Botao>}
           </div>
         </div>
       </div>

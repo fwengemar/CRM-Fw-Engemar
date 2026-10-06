@@ -98,6 +98,24 @@ export const PRIO_TAREFA = ['Baixa', 'Normal', 'Alta', 'Urgente']
 export const CORES_PRIO = { 'Baixa': '#b5bbc8', 'Normal': '#579bfc', 'Alta': '#fdab3d', 'Urgente': '#e2445c' }
 export const RECORRENCIAS = ['Nenhuma', 'Diária', 'Semanal', 'Quinzenal', 'Mensal', 'Trimestral']
 
+export const PAPEIS = ['admin', 'editor', 'leitor']
+export const ROTULO_PAPEL = { admin: 'Administrador', editor: 'Editor', leitor: 'Leitura' }
+export const podeEditar = (perfil) => perfil?.papel === 'admin' || perfil?.papel === 'editor'
+export const ehAdmin = (perfil) => perfil?.papel === 'admin'
+
+// planilha de verdade (.xlsx), uma aba por conjunto de linhas
+export function exportarXlsx(arquivo, abas) {
+  const X = window.XLSX
+  if (!X) { alert('A planilha ainda está carregando. Tente de novo em alguns segundos.'); return }
+  const livro = X.utils.book_new()
+  abas.filter((a) => a && a.linhas).forEach(({ nome, linhas }) => {
+    const folha = X.utils.json_to_sheet(linhas.length ? linhas : [{ '': 'sem registros' }])
+    X.utils.book_append_sheet(livro, folha, String(nome).slice(0, 31))
+  })
+  X.writeFile(livro, arquivo)
+}
+export const dataArquivo = () => new Date().toISOString().slice(0, 10)
+
 export const CONCLUIDA = (t) => t.status === 'Concluído' || t.status === 'Cancelado'
 
 // ao concluir, pergunta o que foi feito. A nota vai junto no mesmo update:

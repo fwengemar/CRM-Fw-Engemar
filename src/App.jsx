@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { supabase, CONCLUIDA, diasAte, pedirNotaConclusao } from './lib'
+import { supabase, CONCLUIDA, diasAte, pedirNotaConclusao, podeEditar, ehAdmin, exportarXlsx, dataArquivo, money, dt, valorVigente } from './lib'
 import { Avatar, Botao, inputCls } from './ui'
 import { Tabela, Kanban, Timeline, Dashboard } from './views'
 import { MinhasTarefas, QuadroTarefas, Calendario, PainelTarefas } from './tarefas'
 import { Drawer } from './drawer'
 import { Avisos } from './avisos'
 import { TarefaDrawer } from './tarefa-drawer'
+import { BuscaGlobal } from './busca'
+import { Lixeira } from './lixeira'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -50,6 +52,7 @@ function Login() {
 const NAV = [
   ['Contratos', [['tabela', 'Tabela', '▤'], ['kanban', 'Quadro', '▦'], ['timeline', 'Timeline', '▭'], ['dashboard', 'Dashboard', '◫']]],
   ['Tarefas', [['minhas', 'Minhas tarefas', '☑'], ['quadro', 'Quadro de tarefas', '▦'], ['calendario', 'Calendário', '▤'], ['painel', 'Painel de tarefas', '◫']]],
+  ['Sistema', [['lixeira', 'Lixeira', '🗑']]],
 ]
 const VISOES_TAREFA = ['minhas', 'quadro', 'calendario', 'painel']
 
@@ -65,6 +68,7 @@ export default function App() {
   const [aberto, setAberto] = useState(null)
   const [tarefaAberta, setTarefaAberta] = useState(null)
   const [menu, setMenu] = useState(false)
+  const [buscaGlobal, setBuscaGlobal] = useState(false)
   // tema fica no navegador: cada pessoa escolhe o seu, na sua maquina
   const [tema, setTema] = useState(() => {
     try { return localStorage.getItem('fwcrm_tema') || 'claro' } catch { return 'claro' }
@@ -82,9 +86,9 @@ export default function App() {
 
   const carregar = useCallback(async () => {
     const [c, p, t, m] = await Promise.all([
-      supabase.from('contratos').select('*').order('ordem').order('criado_em'),
+      supabase.from('contratos').select('*').is('excluido_em', null).order('ordem').order('criado_em'),
       supabase.from('perfis').select('*').order('nome'),
-      supabase.from('tarefas').select('*').order('prazo', { nullsFirst: false }).order('ordem'),
+      supabase.from('tarefas').select('*').is('excluido_em', null).order('prazo', { nullsFirst: false }).order('ordem'),
       supabase.from('medicoes').select('id, contrato_id, valor, status, competencia'),
     ])
     if (c.data) setContratos(c.data)
@@ -146,6 +150,61 @@ export default function App() {
   const minhasAbertas = tarefas.filter((t) => t.responsavel_id === user.id && !CONCLUIDA(t))
   const minhasAtrasadas = minhasAbertas.filter((t) => t.prazo && diasAte(t.prazo) < 0).length
 
+  const editor = podeEditar(meuPerfil)
+  const admin = ehAdmin(meuPerfil)
+  const nomeDe = (id) => perfis.find((p) => p.id === id)?.nome || ''
+
+  // exporta o que esta na tela, com os filtros aplicados, mais o relatorio pronto
+  function exportar() {
+    const linhasContrato = contratosFiltrados.map((c) => ({
+      Número: c.numero || '', Objeto: c.objeto, Órgão: c.orgao || '', Modalidade: c.modalidade || '',
+      Processo: c.processo || '', Local: c.local || '', Fase: c.fase, Status: c.saude, Prioridade: c.prioridade,
+      Responsável: nomeDe(c.responsavel_id), 'Valor estimado': Number(c.valor_total || 0),
+      'Valor de contrato': Number(c.valor_contratado || 0), Continuado: c.continuado ? 'Sim' : 'Não',
+      Sessão: c.data_sessao || '', Assinatura: c.data_assinatura || '',
+      Início: c.vigencia_inicio || '', Fim: c.vigencia_fim || '', Observações: c.observacoes || '',
+    }))
+    const linhasTarefa = tarefasFiltradas.map((t) => ({
+      Tarefa: t.titulo, Status: t.status, Prioridade: t.prioridade,
+      Responsável: (t.responsaveis && t.responsaveis.length ? t.responsaveis : [t.responsavel_id]).filter(Boolean).map(nomeDe).join(', '),
+      Contrato: (contratos.find((c) => c.id === t.contrato_id)?.numero) || '',
+      Início: t.data_inicio || '', Prazo: t.prazo || '', Hora: (t.hora_prazo || '').slice(0, 5),
+      Recorrência: t.recorrencia, 'Concluída em': t.concluida_em ? dt(t.concluida_em) : '',
+      'O que foi feito': t.nota_conclusao || '', Descrição: t.descricao || '',
+    }))
+    const linhasMedicao = medicoes.map((m) => {
+      const c = contratos.find((x) => x.id === m.contrato_id)
+      return {
+        Contrato: c?.numero || c?.objeto || '', Órgão: c?.orgao || '', Competência: m.competencia || '',
+        Valor: Number(m.valor || 0), Status: m.status,
+      }
+    })
+    const porOrgao = {}
+    contratosFiltrados.forEach((c) => {
+      const k = c.orgao || 'Sem órgão'
+      porOrgao[k] = porOrgao[k] || { Órgão: k, Contratos: 0, 'Valor contratado': 0, 'Valor estimado': 0 }
+      porOrgao[k].Contratos += 1
+      porOrgao[k]['Valor contratado'] += Number(c.valor_contratado || 0)
+      porOrgao[k]['Valor estimado'] += Number(c.valor_total || 0)
+    })
+    const produtividade = perfis.map((p) => {
+      const minhas = tarefas.filter((t) => t.responsavel_id === p.id || (t.responsaveis || []).includes(p.id))
+      return {
+        Pessoa: p.nome,
+        'Em aberto': minhas.filter((t) => !CONCLUIDA(t)).length,
+        Atrasadas: minhas.filter((t) => !CONCLUIDA(t) && t.prazo && diasAte(t.prazo) < 0).length,
+        Concluídas: minhas.filter((t) => t.status === 'Concluído').length,
+      }
+    })
+    exportarXlsx(`fw-crm-${dataArquivo()}.xlsx`, [
+      { nome: 'Contratos', linhas: linhasContrato },
+      { nome: 'Tarefas', linhas: linhasTarefa },
+      { nome: 'Medições', linhas: linhasMedicao },
+      { nome: 'Carteira por órgão', linhas: Object.values(porOrgao) },
+      { nome: 'Produtividade', linhas: produtividade },
+    ])
+  }
+
   const propsContrato = { contratos: contratosFiltrados, perfis, onPatch: patch, onAbrir: setAberto, onNovo: () => setAberto({}) }
   const propsTarefa = {
     tarefas: tarefasFiltradas, perfis, contratos, user,
@@ -201,21 +260,32 @@ export default function App() {
                   : `${contratos.length} contratos · atualizado em tempo real`}
               </p>
             </div>
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={ehTarefa ? 'Buscar tarefa…' : 'Buscar contrato, órgão, processo…'}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-[13px] w-56 outline-none focus:border-[#0073ea]" />
+            <div className="flex items-center gap-1">
+              <input value={busca} onChange={(e) => setBusca(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && busca.trim().length >= 2) setBuscaGlobal(true) }}
+                placeholder={ehTarefa ? 'Buscar tarefa…' : 'Buscar contrato, órgão, processo…'}
+                title="Filtra esta tela. Enter procura em tudo."
+                className="rounded-lg border border-slate-200 px-3 py-2 text-[13px] w-56 outline-none focus:border-[#0073ea]" />
+              <button onClick={() => setBuscaGlobal(true)} title="Procurar em contratos, tarefas e comentários"
+                className="rounded-lg border border-slate-200 px-2.5 py-2 text-[13px] text-slate-500 hover:bg-slate-50">tudo</button>
+            </div>
             <select value={filtroResp} onChange={(e) => setFiltroResp(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-[13px] outline-none focus:border-[#0073ea]">
               <option value="">Todos responsáveis</option>
               {perfis.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
             </select>
-            {ehTarefa
+            <Botao variante="neutro" onClick={exportar}>Exportar</Botao>
+            {editor && (ehTarefa
               ? <Botao onClick={() => setTarefaAberta({})}>+ Nova tarefa</Botao>
-              : <Botao onClick={() => setAberto({})}>+ Novo contrato</Botao>}
+              : <Botao onClick={() => setAberto({})}>+ Novo contrato</Botao>)}
             <div className="relative">
               <button onClick={() => setMenu(!menu)}><Avatar nome={meuPerfil?.nome || user.email} id={user.id} size={34} /></button>
               {menu && (
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 p-3 z-30">
                   <div className="text-[13px] font-semibold text-slate-700">{meuPerfil?.nome}</div>
-                  <div className="text-[11px] text-slate-400 mb-3">{user.email}</div>
+                  <div className="text-[11px] text-slate-400">{user.email}</div>
+                  <div className="text-[11px] text-slate-400 mb-3">
+                    {admin ? 'Administrador' : editor ? 'Editor' : 'Somente leitura'}
+                  </div>
                   <button onClick={() => setTema(tema === 'escuro' ? 'claro' : 'escuro')}
                     className="w-full flex items-center gap-2 text-left text-[13px] font-semibold text-slate-600 hover:bg-slate-50 rounded px-2 py-1.5 mb-1">
                     <span className="text-slate-400">{tema === 'escuro' ? '☀' : '☾'}</span>
@@ -244,6 +314,7 @@ export default function App() {
           {visao === 'minhas' && <MinhasTarefas {...propsTarefa} />}
           {visao === 'painel' && <PainelTarefas tarefas={tarefasFiltradas} perfis={perfis} contratos={contratos} onAbrir={setTarefaAberta} />}
           {visao === 'quadro' && <QuadroTarefas {...propsTarefa} />}
+          {visao === 'lixeira' && <Lixeira perfis={perfis} meuPerfil={meuPerfil} onMudou={carregar} />}
           {visao === 'calendario' && (
             <Calendario tarefas={tarefasFiltradas} contratos={contratos} perfis={perfis}
               onAbrir={setTarefaAberta} onAbrirContrato={setAberto} onPatch={patchTarefa}
@@ -252,16 +323,22 @@ export default function App() {
         </main>
       </div>
 
+      {buscaGlobal && (
+        <BuscaGlobal termo={busca} contratos={contratos}
+          onAbrirContrato={(c) => setAberto(c)} onAbrirTarefa={(t) => setTarefaAberta(t)}
+          onFechar={() => setBuscaGlobal(false)} />
+      )}
+
       {aberto && (
         <Drawer contrato={aberto.id ? contratos.find((c) => c.id === aberto.id) : null}
-          perfis={perfis} user={user} tarefas={tarefas} contratos={contratos}
+          perfis={perfis} user={user} editor={editor} tarefas={tarefas} contratos={contratos}
           onAbrirTarefa={setTarefaAberta} onNovaTarefa={(cid) => setTarefaAberta({ contrato_id: cid })}
           onPatchTarefa={patchTarefa} onClose={() => setAberto(null)} onSalvo={carregar} />
       )}
 
       {tarefaAberta && (
         <TarefaDrawer tarefa={tarefaAberta.id ? tarefas.find((t) => t.id === tarefaAberta.id) : (Object.keys(tarefaAberta).length ? tarefaAberta : null)}
-          tarefas={tarefas} contratos={contratos} perfis={perfis} user={user}
+          tarefas={tarefas} contratos={contratos} perfis={perfis} user={user} editor={editor}
           onClose={() => setTarefaAberta(null)} onSalvo={carregar} />
       )}
     </div>
