@@ -31,7 +31,7 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor 
     const [ck, co, at] = await Promise.all([
       supabase.from('checklist_itens').select('*').eq('tarefa_id', tarefa.id).order('ordem'),
       supabase.from('comentarios').select('*').eq('tarefa_id', tarefa.id).order('criado_em', { ascending: false }),
-      supabase.from('atividades').select('*').eq('tarefa_id', tarefa.id).order('criado_em', { ascending: false }).limit(30),
+      supabase.from('atividades').select('*').eq('tarefa_id', tarefa.id).order('criado_em', { ascending: false }).limit(120),
     ])
     setChecklist(ck.data || []); setComentarios(co.data || []); setAtividades(at.data || [])
   }
@@ -104,7 +104,7 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor 
   const feitos = checklist.filter((i) => i.feito).length
   const abas = nova ? [['detalhes', 'Detalhes']] :
     [['detalhes', 'Detalhes'], ['checklist', `Checklist (${feitos}/${checklist.length})`],
-     ['subtarefas', `Subtarefas (${subtarefas.length})`], ['conversa', `Conversa (${comentarios.length})`], ['atividade', 'Atividade']]
+     ['subtarefas', `Subtarefas (${subtarefas.length})`], ['conversa', `Conversa (${comentarios.length})`], ['atividade', `Atividade (${atividades.length})`]]
 
   const dep = tarefas.find((t) => t.id === f.depende_de_id)
   const bloqueada = dep && !CONCLUIDA(dep)
