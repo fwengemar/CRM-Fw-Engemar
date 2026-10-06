@@ -4,16 +4,17 @@ import {
   MODALIDADES, STATUS_MEDICAO, CORES_MEDICAO, TIPOS_ADITIVO, money, dt,
 } from './lib'
 import { Pill, SelectPill, Avatar, Campo, inputCls, Botao, InputMoeda } from './ui'
+import { CamposExtras } from './campos'
 import { ListaTarefasContrato } from './tarefas'
 
 const vazio = {
   numero: '', objeto: '', orgao: '', modalidade: 'Pregão Eletrônico', processo: '', local: '',
   fase: 'Oportunidade', saude: 'Em dia', prioridade: 'Média', responsavel_id: '', continuado: false,
   valor_total: '', valor_contratado: '', valor_anual: '', data_sessao: '', data_assinatura: '',
-  vigencia_inicio: '', vigencia_fim: '', prazo_meses: '', garantia_percentual: '', observacoes: '',
+  vigencia_inicio: '', vigencia_fim: '', prazo_meses: '', garantia_percentual: '', observacoes: '', extras: {},
 }
 
-export function Drawer({ contrato, perfis, user, editor = true, tarefas = [], contratos = [], onAbrirTarefa, onNovaTarefa, onPatchTarefa, onClose, onSalvo }) {
+export function Drawer({ contrato, perfis, user, editor = true, campos = [], tarefas = [], contratos = [], onAbrirTarefa, onNovaTarefa, onPatchTarefa, onClose, onSalvo }) {
   const novo = !contrato?.id
   const [f, setF] = useState({ ...vazio, ...(contrato || {}) })
   const [aba, setAba] = useState('detalhes')
@@ -52,7 +53,7 @@ export function Drawer({ contrato, perfis, user, editor = true, tarefas = [], co
       data_sessao: txt(f.data_sessao), data_assinatura: txt(f.data_assinatura),
       vigencia_inicio: txt(f.vigencia_inicio), vigencia_fim: txt(f.vigencia_fim),
       prazo_meses: num(f.prazo_meses), garantia_percentual: num(f.garantia_percentual),
-      continuado: !!f.continuado, observacoes: txt(f.observacoes),
+      continuado: !!f.continuado, observacoes: txt(f.observacoes), extras: f.extras || {},
     }
     if (!dados.objeto) { alert('Descreva o objeto do contrato.'); setSalvando(false); return }
     let erro
@@ -191,6 +192,8 @@ export function Drawer({ contrato, perfis, user, editor = true, tarefas = [], co
               <Campo label={f.continuado ? 'Início da vigência' : 'Data de início'}><input type="date" className={inputCls} value={f.vigencia_inicio || ''} onChange={set('vigencia_inicio')} /></Campo>
               <Campo label={f.continuado ? 'Fim da vigência' : 'Data de fim'}><input type="date" className={inputCls} value={f.vigencia_fim || ''} onChange={set('vigencia_fim')} /></Campo>
               <Campo label="Garantia contratual (%)"><input type="number" step="0.01" className={inputCls} value={f.garantia_percentual || ''} onChange={set('garantia_percentual')} /></Campo>
+              <CamposExtras campos={campos} valores={f.extras} editor={editor}
+                onChange={(v) => setF({ ...f, extras: v })} />
               <Campo label="Observações" className="col-span-2">
                 <textarea rows={5} className={inputCls} value={f.observacoes || ''} onChange={set('observacoes')} />
               </Campo>

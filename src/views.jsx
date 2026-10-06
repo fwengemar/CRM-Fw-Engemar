@@ -6,9 +6,19 @@ import {
 import { Pill, SelectPill, Avatar, lumText } from './ui'
 
 /* ============================ TABELA ============================ */
-export function Tabela({ contratos, perfis, onPatch, onAbrir, onNovo }) {
+export function Tabela({ contratos, perfis, onPatch, onAbrir, onNovo, agruparPor = 'fase' }) {
   const [fechados, setFechados] = useState({})
-  const grupos = FASES.map((f) => [f, contratos.filter((c) => c.fase === f)]).filter(([, l]) => l.length)
+  // o agrupamento muda o que separa as seções, sem mexer nas colunas
+  const grupos = (() => {
+    if (agruparPor === 'fase') return FASES.map((f) => [f, contratos.filter((c) => c.fase === f)]).filter(([, l]) => l.length)
+    if (agruparPor === 'saude') return SAUDES.map((f) => [f, contratos.filter((c) => c.saude === f)]).filter(([, l]) => l.length)
+    const chave = agruparPor === 'orgao'
+      ? (c) => c.orgao || 'Sem órgão'
+      : (c) => perfis.find((p) => p.id === c.responsavel_id)?.nome || 'Sem responsável'
+    const nomes = [...new Set(contratos.map(chave))].sort((a, b) => a.localeCompare(b))
+    return nomes.map((n) => [n, contratos.filter((c) => chave(c) === n)])
+  })()
+  const corGrupo = (g) => (agruparPor === 'fase' ? CORES_FASE[g] : agruparPor === 'saude' ? CORES_SAUDE[g] : '#323338')
 
   return (
     <div className="p-6 space-y-8">
@@ -20,7 +30,7 @@ export function Tabela({ contratos, perfis, onPatch, onAbrir, onNovo }) {
             <div className="flex items-center gap-2 mb-2">
               <button onClick={() => setFechados({ ...fechados, [fase]: aberto })}
                 className="text-xs w-5 h-5 rounded hover:bg-slate-200 text-slate-400">{aberto ? '▾' : '▸'}</button>
-              <h2 className="text-[15px] font-bold" style={{ color: CORES_FASE[fase] }}>{fase}</h2>
+              <h2 className="text-[15px] font-bold" style={{ color: corGrupo(fase) }}>{fase}</h2>
               <span className="text-xs text-slate-400">{lista.length} contrato{lista.length > 1 ? 's' : ''}</span>
               {total > 0 && <span className="text-xs text-slate-400">· {moneyShort(total)}</span>}
             </div>

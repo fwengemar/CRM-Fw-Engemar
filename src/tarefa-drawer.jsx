@@ -4,14 +4,15 @@ import {
   pedirNotaConclusao,
 } from './lib'
 import { SelectPill, Avatar, Campo, inputCls, Botao } from './ui'
+import { CamposExtras } from './campos'
 
 const vazia = {
   titulo: '', descricao: '', status: 'A fazer', prioridade: 'Normal', responsavel_id: '',
   contrato_id: '', data_inicio: '', prazo: '', hora_prazo: '', recorrencia: 'Nenhuma', depende_de_id: '', tarefa_pai_id: null,
-  responsaveis: [],
+  responsaveis: [], extras: {},
 }
 
-export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor = true, onClose, onSalvo }) {
+export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor = true, campos = [], onClose, onSalvo }) {
   const nova = !tarefa?.id
   const [f, setF] = useState({ ...vazia, ...(tarefa || {}) })
   const [aba, setAba] = useState('detalhes')
@@ -47,7 +48,7 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor 
     const dados = {
       titulo: f.titulo, descricao: txt(f.descricao), status: f.status, prioridade: f.prioridade,
       responsavel_id: (f.responsaveis || [])[0] || f.responsavel_id || null, contrato_id: f.contrato_id || null,
-      responsaveis: f.responsaveis || [],
+      responsaveis: f.responsaveis || [], extras: f.extras || {},
       data_inicio: txt(f.data_inicio), prazo: txt(f.prazo), hora_prazo: txt(f.hora_prazo), recorrencia: f.recorrencia,
       depende_de_id: f.depende_de_id || null, tarefa_pai_id: f.tarefa_pai_id || null,
     }
@@ -178,6 +179,8 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor 
                   Com hora marcada, o aviso sobe em popup na hora. Sem hora, a tarefa só aparece na faixa do topo.
                 </p>
               </Campo>
+              <CamposExtras campos={campos} valores={f.extras} editor={editor}
+                onChange={(v) => setF({ ...f, extras: v })} />
               <Campo label="Recorrência">
                 <select className={inputCls} value={f.recorrencia} onChange={set('recorrencia')}>
                   {RECORRENCIAS.map((r) => <option key={r}>{r}</option>)}
