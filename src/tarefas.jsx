@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import {
   STATUS_TAREFA, CORES_STATUS, PRIO_TAREFA, CORES_PRIO, GRUPOS_PRAZO, CORES_GRUPO,
   grupoPrazo, CONCLUIDA, dt, diasAte, hoje,
+  responsaveisDe, ehMinha,
 } from './lib'
 import { Pill, SelectPill, Avatar } from './ui'
 
@@ -26,7 +27,8 @@ function Bloqueada({ tarefa, tarefas }) {
 }
 
 function Linha({ t, tarefas, perfis, contratos, onPatch, onAbrir, mostrarContrato = true }) {
-  const resp = perfis.find((p) => p.id === t.responsavel_id)
+  const outros = responsaveisDe(t).map((id) => perfis.find((p) => p.id === id)).filter(Boolean)
+  const resp = outros[0]
   const contrato = contratos.find((c) => c.id === t.contrato_id)
   const subs = tarefas.filter((x) => x.tarefa_pai_id === t.id)
   const feitas = subs.filter(CONCLUIDA).length
@@ -47,12 +49,15 @@ function Linha({ t, tarefas, perfis, contratos, onPatch, onAbrir, mostrarContrat
       </button>
       <PrazoTag tarefa={t} />
       <SelectPill value={t.status} options={STATUS_TAREFA} colors={CORES_STATUS} onChange={(v) => onPatch(t.id, { status: v })} />
-      <select value={t.responsavel_id || ''} onChange={(e) => onPatch(t.id, { responsavel_id: e.target.value || null })}
-        className="cell-select w-8 h-8 rounded-full text-[10px] font-bold border-0 outline-none shrink-0"
-        style={{ background: resp ? '#0073ea' : '#e6e9ef', color: resp ? '#fff' : '#9aa3b2' }} title={resp ? resp.nome : 'Sem responsável'}>
-        <option value="" style={{ color: '#323338' }}>Sem responsável</option>
-        {perfis.map((p) => <option key={p.id} value={p.id} style={{ color: '#323338' }}>{p.nome}</option>)}
-      </select>
+      <div className="flex items-center shrink-0" title={outros.length ? outros.map((p) => p.nome).join(', ') : 'Sem responsável'}>
+        <select value={t.responsavel_id || ''} onChange={(e) => onPatch(t.id, { responsaveis: e.target.value ? [e.target.value] : [] })}
+          className="cell-select w-8 h-8 rounded-full text-[10px] font-bold border-0 outline-none"
+          style={{ background: resp ? '#0073ea' : '#e6e9ef', color: resp ? '#fff' : '#9aa3b2' }} title={resp ? resp.nome : 'Sem responsável'}>
+          <option value="" style={{ color: '#323338' }}>Sem responsável</option>
+          {perfis.map((p) => <option key={p.id} value={p.id} style={{ color: '#323338' }}>{p.nome}</option>)}
+        </select>
+        {outros.slice(1).map((p) => <span key={p.id} className="-ml-1.5"><Avatar nome={p.nome} id={p.id} size={24} /></span>)}
+      </div>
     </div>
   )
 }
@@ -62,7 +67,7 @@ export function MinhasTarefas({ tarefas, perfis, contratos, user, onPatch, onAbr
   const [somenteMinhas, setSomenteMinhas] = useState(true)
   const [verConcluidas, setVerConcluidas] = useState(false)
   const base = tarefas.filter((t) => !t.tarefa_pai_id)
-    .filter((t) => (somenteMinhas ? t.responsavel_id === user.id : true))
+    .filter((t) => (somenteMinhas ? ehMinha(t, user.id) : true))
     .filter((t) => (verConcluidas ? true : !CONCLUIDA(t)))
 
   const grupos = GRUPOS_PRAZO.map((g) => [g, base.filter((t) => grupoPrazo(t) === g)]).filter(([, l]) => l.length)
@@ -128,7 +133,7 @@ export function QuadroTarefas({ tarefas, perfis, contratos, onPatch, onAbrir }) 
               </div>
               <div className="space-y-2 min-h-[80px]">
                 {lista.map((t) => {
-                  const resp = perfis.find((p) => p.id === t.responsavel_id)
+                  const resps = responsaveisDe(t).map((id) => perfis.find((p) => p.id === id)).filter(Boolean)
                   const contrato = contratos.find((c) => c.id === t.contrato_id)
                   const subs = tarefas.filter((x) => x.tarefa_pai_id === t.id)
                   return (
@@ -142,7 +147,12 @@ export function QuadroTarefas({ tarefas, perfis, contratos, onPatch, onAbrir }) 
                         <PrazoTag tarefa={t} />
                         <div className="flex items-center gap-2">
                           {subs.length > 0 && <span className="text-[11px] text-slate-400">☑ {subs.filter(CONCLUIDA).length}/{subs.length}</span>}
-                          <Avatar nome={resp?.nome} id={resp?.id} size={22} />
+                          <div className="flex items-center">
+                            {resps.length === 0 && <Avatar nome={null} id="x" size={22} />}
+                            {resps.map((p, i) => (
+                              <span key={p.id} className={i ? '-ml-1.5' : ''} title={p.nome}><Avatar nome={p.nome} id={p.id} size={22} /></span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -379,9 +389,9 @@ export function PainelTarefas({ tarefas, perfis, contratos, onAbrir }) {
             </thead>
             <tbody>
               {perfis.map((p) => {
-                const c7 = concluidas.filter((t) => t.responsavel_id === p.id && porDia.slice(-7).some((d) => d.dia === diaDe(t))).length
-                const ab = abertas.filter((t) => t.responsavel_id === p.id).length
-                const at = atrasadas.filter((t) => t.responsavel_id === p.id).length
+                const c7 = concluidas.filter((t) => ehMinha(t, p.id) && porDia.slice(-7).some((d) => d.dia === diaDe(t))).length
+                const ab = abertas.filter((t) => ehMinha(t, p.id)).length
+                const at = atrasadas.filter((t) => ehMinha(t, p.id)).length
                 return (
                   <tr key={p.id} className="border-t border-slate-100">
                     <td className="py-2 flex items-center gap-2">

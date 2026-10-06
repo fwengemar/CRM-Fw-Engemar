@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { CONCLUIDA, diasAte } from './lib'
+import { CONCLUIDA, diasAte, ehMinha } from './lib'
 import { Botao } from './ui'
 
 const INTERVALO_REPETICAO = 30 * 60 * 1000  // reavisa a cada 30 min com a aba aberta
@@ -42,7 +42,7 @@ export function Avisos({ tarefas, contratos, user, onAbrir, onPatch }) {
 
   // tarefa em revisao ja saiu da mao de quem executa: fica na lista, mas nao avisa
   const pendentes = tarefas
-    .filter((t) => t.responsavel_id === user.id && !CONCLUIDA(t) && t.status !== 'Em revisão' && t.prazo && chegouAHora(t))
+    .filter((t) => ehMinha(t, user.id) && !CONCLUIDA(t) && t.status !== 'Em revisão' && t.prazo && chegouAHora(t))
     .sort((a, b) => diasAte(a.prazo) - diasAte(b.prazo) || (a.hora_prazo || '').localeCompare(b.hora_prazo || ''))
   const atrasadas = pendentes.filter((t) => diasAte(t.prazo) < 0)
   const paraHoje = pendentes.filter((t) => diasAte(t.prazo) === 0)

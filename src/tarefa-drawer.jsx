@@ -8,6 +8,7 @@ import { SelectPill, Avatar, Campo, inputCls, Botao } from './ui'
 const vazia = {
   titulo: '', descricao: '', status: 'A fazer', prioridade: 'Normal', responsavel_id: '',
   contrato_id: '', data_inicio: '', prazo: '', hora_prazo: '', recorrencia: 'Nenhuma', depende_de_id: '', tarefa_pai_id: null,
+  responsaveis: [],
 }
 
 export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor = true, onClose, onSalvo }) {
@@ -45,7 +46,8 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor 
     const txt = (v) => (v === '' ? null : v)
     const dados = {
       titulo: f.titulo, descricao: txt(f.descricao), status: f.status, prioridade: f.prioridade,
-      responsavel_id: f.responsavel_id || null, contrato_id: f.contrato_id || null,
+      responsavel_id: (f.responsaveis || [])[0] || f.responsavel_id || null, contrato_id: f.contrato_id || null,
+      responsaveis: f.responsaveis || [],
       data_inicio: txt(f.data_inicio), prazo: txt(f.prazo), hora_prazo: txt(f.hora_prazo), recorrencia: f.recorrencia,
       depende_de_id: f.depende_de_id || null, tarefa_pai_id: f.tarefa_pai_id || null,
     }
@@ -140,11 +142,30 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor 
                   {contratos.map((c) => <option key={c.id} value={c.id}>{c.numero ? c.numero + ' — ' : ''}{c.objeto.slice(0, 50)}</option>)}
                 </select>
               </Campo>
-              <Campo label="Responsável">
-                <select className={inputCls} value={f.responsavel_id || ''} onChange={set('responsavel_id')}>
-                  <option value="">Sem responsável</option>
-                  {perfis.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                </select>
+              <Campo label="Responsáveis">
+                <div className="flex flex-wrap gap-1.5">
+                  {perfis.map((p) => {
+                    const marcado = (f.responsaveis || []).includes(p.id)
+                    return (
+                      <button key={p.id} type="button" disabled={!editor}
+                        onClick={() => setF({
+                          ...f,
+                          responsaveis: marcado
+                            ? (f.responsaveis || []).filter((x) => x !== p.id)
+                            : [...(f.responsaveis || []), p.id],
+                        })}
+                        className={'flex items-center gap-1.5 rounded-full border px-2 py-1 text-[12px] disabled:opacity-60 ' +
+                          (marcado ? 'border-[#0073ea] bg-[#0073ea]/10 text-[#0073ea] font-semibold' : 'border-slate-200 text-slate-500 hover:bg-slate-50')}>
+                        <Avatar nome={p.nome} id={p.id} size={18} />{p.nome}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {(f.responsaveis || []).length > 1
+                    ? 'O primeiro da lista é quem responde pela entrega; todos recebem os avisos.'
+                    : 'Clique nos nomes para dividir a tarefa entre mais de uma pessoa.'}
+                </p>
               </Campo>
               <Campo label="Início"><input type="date" className={inputCls} value={f.data_inicio || ''} onChange={set('data_inicio')} /></Campo>
               <Campo label="Prazo de entrega">
@@ -233,8 +254,19 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor 
 
           {aba === 'conversa' && (
             <div>
-              <textarea rows={3} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Comente nesta tarefa…" className={inputCls} />
-              <div className="text-right mt-2"><Botao onClick={comentar}>Publicar</Botao></div>
+              <textarea rows={3} value={texto} onChange={(e) => setTexto(e.target.value)}
+                placeholder="Comente nesta tarefa… use @ para chamar alguém" className={inputCls} />
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className="text-[11px] text-slate-400">Chamar:</span>
+                {perfis.map((p) => (
+                  <button key={p.id} type="button"
+                    onClick={() => setTexto((v) => (v ? v.replace(/\s*$/, ' ') : '') + '@' + p.nome + ' ')}
+                    className="rounded-full border border-slate-200 px-2 py-0.5 text-[12px] text-slate-500 hover:bg-slate-50">
+                    @{p.nome}
+                  </button>
+                ))}
+                <div className="ml-auto"><Botao onClick={comentar}>Publicar</Botao></div>
+              </div>
               <div className="mt-6 space-y-4">
                 {comentarios.map((c) => (
                   <div key={c.id} className="flex gap-3">

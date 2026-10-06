@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { supabase, CONCLUIDA, diasAte, pedirNotaConclusao, podeEditar, ehAdmin, exportarXlsx, dataArquivo, money, dt, valorVigente } from './lib'
+import { supabase, CONCLUIDA, diasAte, pedirNotaConclusao, podeEditar, ehAdmin, exportarXlsx, dataArquivo, money, dt, valorVigente, ehMinha, responsaveisDe } from './lib'
 import { Avatar, Botao, inputCls } from './ui'
 import { Tabela, Kanban, Timeline, Dashboard } from './views'
 import { MinhasTarefas, QuadroTarefas, Calendario, PainelTarefas } from './tarefas'
@@ -8,6 +8,7 @@ import { Avisos } from './avisos'
 import { TarefaDrawer } from './tarefa-drawer'
 import { BuscaGlobal } from './busca'
 import { Lixeira } from './lixeira'
+import { Sino } from './sino'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -143,11 +144,11 @@ export default function App() {
   const tarefasFiltradas = tarefas.filter((t) => {
     const contrato = contratos.find((c) => c.id === t.contrato_id)
     const okBusca = !termo || [t.titulo, t.descricao, contrato?.numero, contrato?.objeto].some((v) => (v || '').toLowerCase().includes(termo))
-    const okResp = !filtroResp || t.responsavel_id === filtroResp
+    const okResp = !filtroResp || ehMinha(t, filtroResp)
     return okBusca && okResp
   })
 
-  const minhasAbertas = tarefas.filter((t) => t.responsavel_id === user.id && !CONCLUIDA(t))
+  const minhasAbertas = tarefas.filter((t) => ehMinha(t, user.id) && !CONCLUIDA(t))
   const minhasAtrasadas = minhasAbertas.filter((t) => t.prazo && diasAte(t.prazo) < 0).length
 
   const editor = podeEditar(meuPerfil)
@@ -166,7 +167,7 @@ export default function App() {
     }))
     const linhasTarefa = tarefasFiltradas.map((t) => ({
       Tarefa: t.titulo, Status: t.status, Prioridade: t.prioridade,
-      Responsável: (t.responsaveis && t.responsaveis.length ? t.responsaveis : [t.responsavel_id]).filter(Boolean).map(nomeDe).join(', '),
+      Responsável: responsaveisDe(t).map(nomeDe).join(', '),
       Contrato: (contratos.find((c) => c.id === t.contrato_id)?.numero) || '',
       Início: t.data_inicio || '', Prazo: t.prazo || '', Hora: (t.hora_prazo || '').slice(0, 5),
       Recorrência: t.recorrencia, 'Concluída em': t.concluida_em ? dt(t.concluida_em) : '',
@@ -188,7 +189,7 @@ export default function App() {
       porOrgao[k]['Valor estimado'] += Number(c.valor_total || 0)
     })
     const produtividade = perfis.map((p) => {
-      const minhas = tarefas.filter((t) => t.responsavel_id === p.id || (t.responsaveis || []).includes(p.id))
+      const minhas = tarefas.filter((t) => ehMinha(t, p.id))
       return {
         Pessoa: p.nome,
         'Em aberto': minhas.filter((t) => !CONCLUIDA(t)).length,
@@ -277,6 +278,7 @@ export default function App() {
             {editor && (ehTarefa
               ? <Botao onClick={() => setTarefaAberta({})}>+ Nova tarefa</Botao>
               : <Botao onClick={() => setAberto({})}>+ Novo contrato</Botao>)}
+            <Sino user={user} perfis={perfis} onAbrirTarefa={setTarefaAberta} onAbrirContrato={setAberto} />
             <div className="relative">
               <button onClick={() => setMenu(!menu)}><Avatar nome={meuPerfil?.nome || user.email} id={user.id} size={34} /></button>
               {menu && (

@@ -116,6 +116,13 @@ export function exportarXlsx(arquivo, abas) {
 }
 export const dataArquivo = () => new Date().toISOString().slice(0, 10)
 
+// tarefa pode ter varios responsaveis; responsavel_id continua sendo o primeiro
+export const responsaveisDe = (t) => {
+  const lista = (t.responsaveis || []).filter(Boolean)
+  return lista.length ? lista : (t.responsavel_id ? [t.responsavel_id] : [])
+}
+export const ehMinha = (t, id) => responsaveisDe(t).includes(id)
+
 export const CONCLUIDA = (t) => t.status === 'Concluído' || t.status === 'Cancelado'
 
 // ao concluir, pergunta o que foi feito. A nota vai junto no mesmo update:
