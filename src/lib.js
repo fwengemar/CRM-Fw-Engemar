@@ -4,6 +4,10 @@ const url = import.meta.env.VITE_SUPABASE_URL || 'https://goautzfgguqcltjqteoi.s
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_pACJNg4FvwOtbL4B2Md9Ow_DpwkTFtq'
 
 export const supabase = createClient(url, key)
+// endereço das funções do servidor (criar acesso precisa da chave de serviço,
+// que nunca pode ficar no navegador)
+export const FUNCOES = url + '/functions/v1'
+export const CHAVE_PUBLICA = key
 
 export const FASES = [
   'Oportunidade',

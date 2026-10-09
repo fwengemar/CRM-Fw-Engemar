@@ -10,6 +10,7 @@ import { BuscaGlobal } from './busca'
 import { Lixeira } from './lixeira'
 import { Sino } from './sino'
 import { Campos, textoCampo } from './campos'
+import { Acessos } from './acessos'
 import { BarraFiltros, FILTRO_VAZIO, filtroLimpo, dentroDaJanela } from './filtros'
 
 function Login() {
@@ -55,7 +56,7 @@ function Login() {
 const NAV = [
   ['Contratos', [['tabela', 'Tabela', '▤'], ['kanban', 'Quadro', '▦'], ['timeline', 'Timeline', '▭'], ['dashboard', 'Dashboard', '◫']]],
   ['Tarefas', [['minhas', 'Minhas tarefas', '☑'], ['quadro', 'Quadro de tarefas', '▦'], ['calendario', 'Calendário', '▤'], ['painel', 'Painel de tarefas', '◫']]],
-  ['Sistema', [['lixeira', 'Lixeira', '🗑'], ['campos', 'Campos', '⚙']]],
+  ['Sistema', [['lixeira', 'Lixeira', '🗑'], ['campos', 'Campos', '⚙'], ['acessos', 'Acessos', '👤']]],
 ]
 const VISOES_TAREFA = ['minhas', 'quadro', 'calendario', 'painel']
 
@@ -334,7 +335,7 @@ export default function App() {
           </div>
         </header>
 
-        {visao !== 'lixeira' && visao !== 'campos' && (
+        {!['lixeira', 'campos', 'acessos'].includes(visao) && (
           <BarraFiltros ehTarefa={ehTarefa} filtros={filtros} setFiltros={setFiltros}
             agrupamento={agrupamento} setAgrupamento={setAgrupamento}
             visoes={visoes} user={user} telaAtual={visao}
@@ -354,6 +355,7 @@ export default function App() {
           {visao === 'quadro' && <QuadroTarefas {...propsTarefa} />}
           {visao === 'lixeira' && <Lixeira perfis={perfis} meuPerfil={meuPerfil} onMudou={carregar} />}
           {visao === 'campos' && <Campos campos={campos} meuPerfil={meuPerfil} onMudou={carregar} />}
+          {visao === 'acessos' && <Acessos perfis={perfis} meuPerfil={meuPerfil} user={user} onMudou={carregar} />}
           {visao === 'calendario' && (
             <Calendario tarefas={tarefasFiltradas} contratos={contratos} perfis={perfis}
               onAbrir={setTarefaAberta} onAbrirContrato={setAberto} onPatch={patchTarefa}
