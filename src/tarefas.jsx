@@ -26,7 +26,7 @@ function Bloqueada({ tarefa, tarefas }) {
   return <span className="text-[11px] text-[#e2445c] font-semibold" title={'Aguarda: ' + dep.titulo}>🔒 bloqueada</span>
 }
 
-function Linha({ t, tarefas, perfis, contratos, onPatch, onAbrir, mostrarContrato = true }) {
+function Linha({ t, tarefas, perfis, contratos, onPatch, onAbrir, onExcluir, mostrarContrato = true }) {
   const outros = responsaveisDe(t).map((id) => perfis.find((p) => p.id === id)).filter(Boolean)
   const resp = outros[0]
   const contrato = contratos.find((c) => c.id === t.contrato_id)
@@ -58,12 +58,18 @@ function Linha({ t, tarefas, perfis, contratos, onPatch, onAbrir, mostrarContrat
         </select>
         {outros.slice(1).map((p) => <span key={p.id} className="-ml-1.5"><Avatar nome={p.nome} id={p.id} size={24} /></span>)}
       </div>
+      {onExcluir && (
+        <button onClick={(e) => { e.stopPropagation(); onExcluir(t) }} title="Mover esta tarefa para a lixeira"
+          className="shrink-0 w-7 h-7 rounded-lg text-[13px] leading-none opacity-30 hover:opacity-100 hover:bg-[#e2445c]/10">
+          🗑
+        </button>
+      )}
     </div>
   )
 }
 
 /* ===================== MINHAS TAREFAS ===================== */
-export function MinhasTarefas({ tarefas, perfis, contratos, user, onPatch, onAbrir, onNova }) {
+export function MinhasTarefas({ tarefas, perfis, contratos, user, onPatch, onAbrir, onNova, onExcluir }) {
   const [somenteMinhas, setSomenteMinhas] = useState(true)
   const [verConcluidas, setVerConcluidas] = useState(false)
   const base = tarefas.filter((t) => !t.tarefa_pai_id)
@@ -100,7 +106,7 @@ export function MinhasTarefas({ tarefas, perfis, contratos, user, onPatch, onAbr
             <span className="text-[11px] text-slate-400">{lista.length}</span>
           </div>
           {lista.map((t) => (
-            <Linha key={t.id} t={t} tarefas={tarefas} perfis={perfis} contratos={contratos} onPatch={onPatch} onAbrir={onAbrir} />
+            <Linha key={t.id} t={t} tarefas={tarefas} perfis={perfis} contratos={contratos} onPatch={onPatch} onAbrir={onAbrir} onExcluir={onExcluir} />
           ))}
         </section>
       ))}
@@ -168,7 +174,7 @@ export function QuadroTarefas({ tarefas, perfis, contratos, onPatch, onAbrir }) 
 }
 
 /* ===================== CALENDÁRIO ===================== */
-export function Calendario({ tarefas, contratos, perfis, onAbrir, onAbrirContrato, onNovaTarefa, onPatch }) {
+export function Calendario({ tarefas, contratos, perfis, onAbrir, onAbrirContrato, onNovaTarefa, onPatch, onExcluir }) {
   const agora = new Date()
   const [dia, setDia] = useState(null)
   const [ref, setRef] = useState(new Date(agora.getFullYear(), agora.getMonth(), 1))
@@ -272,7 +278,7 @@ export function Calendario({ tarefas, contratos, perfis, onAbrir, onAbrirContrat
               </button>
             ))}
             {doDia.map((t) => (
-              <Linha key={'p' + t.id} t={t} tarefas={tarefas} perfis={perfis} contratos={contratos} onPatch={onPatch} onAbrir={onAbrir} />
+              <Linha key={'p' + t.id} t={t} tarefas={tarefas} perfis={perfis} contratos={contratos} onPatch={onPatch} onAbrir={onAbrir} onExcluir={onExcluir} />
             ))}
 
             <button onClick={() => onNovaTarefa(dia)} className="mt-4 text-[13px] font-semibold text-slate-400 hover:text-[#0073ea]">
@@ -434,13 +440,13 @@ export function PainelTarefas({ tarefas, perfis, contratos, onAbrir }) {
 }
 
 /* ===== lista compacta usada dentro do contrato ===== */
-export function ListaTarefasContrato({ tarefas, perfis, contratos, onPatch, onAbrir }) {
+export function ListaTarefasContrato({ tarefas, perfis, contratos, onPatch, onAbrir, onExcluir }) {
   const raiz = tarefas.filter((t) => !t.tarefa_pai_id)
   if (!raiz.length) return <p className="text-[13px] text-slate-400">Nenhuma tarefa neste contrato ainda.</p>
   return (
     <div className="rounded-lg border border-slate-200 overflow-hidden">
       {raiz.map((t) => (
-        <Linha key={t.id} t={t} tarefas={tarefas} perfis={perfis} contratos={contratos} onPatch={onPatch} onAbrir={onAbrir} mostrarContrato={false} />
+        <Linha key={t.id} t={t} tarefas={tarefas} perfis={perfis} contratos={contratos} onPatch={onPatch} onAbrir={onAbrir} onExcluir={onExcluir} mostrarContrato={false} />
       ))}
     </div>
   )

@@ -139,6 +139,21 @@ export default function App() {
     carregar()
   }
 
+  // nao apaga: manda para a lixeira junto com as subtarefas, de onde da para restaurar
+  async function excluirTarefa(t) {
+    const filhas = tarefas.filter((x) => x.tarefa_pai_id === t.id)
+    const extra = filhas.length === 0 ? ''
+      : filhas.length === 1 ? '\n\nA subtarefa dela vai junto.'
+      : `\n\nAs ${filhas.length} subtarefas dela vão junto.`
+    if (!confirm(`Tem certeza que quer mover "${t.titulo}" para a lixeira?${extra}\n\nDá para restaurar depois em Sistema › Lixeira.`)) return
+    const ids = [t.id, ...filhas.map((x) => x.id)]
+    setTarefas((ts) => ts.filter((x) => !ids.includes(x.id)))
+    const { error } = await supabase.from('tarefas')
+      .update({ excluido_em: new Date().toISOString(), excluido_por: sessao.user.id }).in('id', ids)
+    if (error) alert('Erro ao excluir: ' + error.message)
+    carregar()
+  }
+
   if (sessao === undefined) return <div className="min-h-screen flex items-center justify-center text-slate-400">Carregando…</div>
   if (!sessao) return <Login />
 
@@ -239,6 +254,7 @@ export default function App() {
   const propsTarefa = {
     tarefas: tarefasFiltradas, perfis, contratos, user,
     onPatch: patchTarefa, onAbrir: setTarefaAberta, onNova: () => setTarefaAberta({}),
+    onExcluir: editor ? excluirTarefa : null,
   }
 
   return (
@@ -359,6 +375,7 @@ export default function App() {
           {visao === 'calendario' && (
             <Calendario tarefas={tarefasFiltradas} contratos={contratos} perfis={perfis}
               onAbrir={setTarefaAberta} onAbrirContrato={setAberto} onPatch={patchTarefa}
+              onExcluir={editor ? excluirTarefa : null}
               onNovaTarefa={(prazo) => setTarefaAberta({ prazo })} />
           )}
         </main>
@@ -375,7 +392,8 @@ export default function App() {
           perfis={perfis} user={user} editor={editor} tarefas={tarefas} contratos={contratos}
           campos={campos.filter((k) => k.entidade === 'contrato')}
           onAbrirTarefa={setTarefaAberta} onNovaTarefa={(cid) => setTarefaAberta({ contrato_id: cid })}
-          onPatchTarefa={patchTarefa} onClose={() => setAberto(null)} onSalvo={carregar} />
+          onPatchTarefa={patchTarefa} onExcluirTarefa={editor ? excluirTarefa : null}
+          onClose={() => setAberto(null)} onSalvo={carregar} />
       )}
 
       {tarefaAberta && (

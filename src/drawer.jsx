@@ -14,7 +14,7 @@ const vazio = {
   vigencia_inicio: '', vigencia_fim: '', prazo_meses: '', garantia_percentual: '', observacoes: '', extras: {},
 }
 
-export function Drawer({ contrato, perfis, user, editor = true, campos = [], tarefas = [], contratos = [], onAbrirTarefa, onNovaTarefa, onPatchTarefa, onClose, onSalvo }) {
+export function Drawer({ contrato, perfis, user, editor = true, campos = [], tarefas = [], contratos = [], onAbrirTarefa, onNovaTarefa, onPatchTarefa, onExcluirTarefa, onClose, onSalvo }) {
   const novo = !contrato?.id
   const [f, setF] = useState({ ...vazio, ...(contrato || {}) })
   const [aba, setAba] = useState('detalhes')
@@ -202,7 +202,7 @@ export function Drawer({ contrato, perfis, user, editor = true, campos = [], tar
 
           {abaAtual === 'tarefas' && (
             <div>
-              <ListaTarefasContrato tarefas={minhasTarefas} perfis={perfis} contratos={contratos} onPatch={onPatchTarefa} onAbrir={onAbrirTarefa} />
+              <ListaTarefasContrato tarefas={minhasTarefas} perfis={perfis} contratos={contratos} onPatch={onPatchTarefa} onAbrir={onAbrirTarefa} onExcluir={onExcluirTarefa} />
               <div className="flex gap-4 mt-4">
                 <button onClick={() => onNovaTarefa(contrato.id)} className="text-[13px] font-semibold text-slate-400 hover:text-[#0073ea]">+ Nova tarefa</button>
                 <button onClick={gerarDaFase} className="text-[13px] font-semibold text-[#7b68ee] hover:underline">↻ Gerar tarefas padrão da fase \"{contrato.fase}\"</button>
