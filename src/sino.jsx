@@ -18,7 +18,8 @@ export function Sino({ user, perfis, onAbrirTarefa, onAbrirContrato }) {
 
   useEffect(() => {
     carregar()
-    const canal = supabase.channel('fw-notificacoes')
+    // nome unico por montagem: dois sinos na mesma tela quebravam o canal
+    const canal = supabase.channel('fw-notificacoes-' + Math.random().toString(36).slice(2))
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificacoes' }, carregar)
       .subscribe()
     const id = setInterval(carregar, 2 * 60 * 1000)   // rede caiu, volta sozinho
@@ -61,8 +62,12 @@ export function Sino({ user, perfis, onAbrirTarefa, onAbrirContrato }) {
   return (
     <div className="relative">
       <button onClick={() => { setAberto(!aberto); if (!aberto) marcarLidas() }}
-        title="Menções e avisos" className="relative px-2 py-1 text-[18px] leading-none text-slate-400 hover:text-slate-600">
-        ◔
+        title="Menções e avisos" className="relative px-1.5 py-1 leading-none text-slate-400 hover:text-slate-600">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+          strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+        </svg>
         {naoLidas.length > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
             style={{ background: '#e2445c' }}>{naoLidas.length}</span>

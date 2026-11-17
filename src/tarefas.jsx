@@ -33,13 +33,16 @@ function Linha({ t, tarefas, perfis, contratos, onPatch, onAbrir, onExcluir, mos
   const subs = tarefas.filter((x) => x.tarefa_pai_id === t.id)
   const feitas = subs.filter(CONCLUIDA).length
   return (
-    <div className="flex items-center gap-3 px-3 py-2 border-t border-slate-100 hover:bg-slate-50/70">
+    <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 border-t border-slate-100 hover:bg-slate-50/70">
       <input type="checkbox" checked={t.status === 'Concluído'}
         onChange={(e) => onPatch(t.id, { status: e.target.checked ? 'Concluído' : 'A fazer' })}
         className="w-4 h-4 accent-[#00c875] cursor-pointer shrink-0" />
       <Bandeira prioridade={t.prioridade} />
-      <button onClick={() => onAbrir(t)} className="flex-1 min-w-0 text-left">
-        <div className={'text-[13px] font-semibold line-clamp-1 ' + (CONCLUIDA(t) ? 'text-slate-400 line-through' : 'text-slate-700')}>{t.titulo}</div>
+      {/* no celular o titulo fica numa linha e os controles na de baixo, senao
+          o titulo era espremido ate sumir */}
+      <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+      <button onClick={() => onAbrir(t)} className="sm:flex-1 min-w-0 text-left">
+        <div className={'text-[13px] font-semibold line-clamp-2 sm:line-clamp-1 ' + (CONCLUIDA(t) ? 'text-slate-400 line-through' : 'text-slate-700')}>{t.titulo}</div>
         <div className="flex items-center gap-2 flex-wrap">
           {mostrarContrato && contrato && <span className="text-[11px] text-slate-400">{contrato.numero || contrato.objeto.slice(0, 34)}</span>}
           {subs.length > 0 && <span className="text-[11px] text-slate-400">☑ {feitas}/{subs.length}</span>}
@@ -47,6 +50,7 @@ function Linha({ t, tarefas, perfis, contratos, onPatch, onAbrir, onExcluir, mos
           {t.recorrencia !== 'Nenhuma' && <span className="text-[11px] text-slate-400">↻ {t.recorrencia}</span>}
         </div>
       </button>
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
       <PrazoTag tarefa={t} />
       <SelectPill value={t.status} options={STATUS_TAREFA} colors={CORES_STATUS} onChange={(v) => onPatch(t.id, { status: v })} />
       <div className="flex items-center shrink-0" title={outros.length ? outros.map((p) => p.nome).join(', ') : 'Sem responsável'}>
@@ -57,6 +61,8 @@ function Linha({ t, tarefas, perfis, contratos, onPatch, onAbrir, onExcluir, mos
           {perfis.map((p) => <option key={p.id} value={p.id} style={{ color: '#323338' }}>{p.nome}</option>)}
         </select>
         {outros.slice(1).map((p) => <span key={p.id} className="-ml-1.5"><Avatar nome={p.nome} id={p.id} size={24} /></span>)}
+      </div>
+      </div>
       </div>
       {onExcluir && (
         <button onClick={(e) => { e.stopPropagation(); onExcluir(t) }} title="Mover esta tarefa para a lixeira"
@@ -79,7 +85,7 @@ export function MinhasTarefas({ tarefas, perfis, contratos, user, onPatch, onAbr
   const grupos = GRUPOS_PRAZO.map((g) => [g, base.filter((t) => grupoPrazo(t) === g)]).filter(([, l]) => l.length)
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <div className="flex items-center gap-4 flex-wrap">
         <label className="flex items-center gap-2 text-[13px] text-slate-600">
           <input type="checkbox" checked={somenteMinhas} onChange={(e) => setSomenteMinhas(e.target.checked)} className="accent-[#0073ea]" />
@@ -121,7 +127,7 @@ export function QuadroTarefas({ tarefas, perfis, contratos, onPatch, onAbrir }) 
   const [sobre, setSobre] = useState(null)
   const base = tarefas.filter((t) => !t.tarefa_pai_id)
   return (
-    <div className="p-6 overflow-x-auto">
+    <div className="p-4 md:p-6 overflow-x-auto">
       <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
         {STATUS_TAREFA.map((st) => {
           const lista = base.filter((t) => t.status === st)
@@ -187,7 +193,7 @@ export function Calendario({ tarefas, contratos, perfis, onAbrir, onAbrirContrat
   const nomeMes = ref.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <button onClick={() => setRef(new Date(ano, mes - 1, 1))} className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50">‹</button>
@@ -326,7 +332,7 @@ export function PainelTarefas({ tarefas, perfis, contratos, onAbrir }) {
   const diaCurto = (d) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div className="imprimir-cabecalho">
           <h2 className="text-lg font-extrabold text-slate-800">FW CRM · Painel de tarefas</h2>

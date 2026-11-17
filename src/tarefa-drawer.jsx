@@ -112,7 +112,7 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor 
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-slate-900/30" onMouseDown={onClose}>
       <div className="w-full max-w-2xl h-full bg-white shadow-2xl flex flex-col" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-slate-100 flex items-start gap-3">
+        <div className="px-4 md:px-6 py-4 border-b border-slate-100 flex items-start gap-3">
           <input type="checkbox" checked={f.status === 'Concluído'} onChange={(e) => setF({ ...f, status: e.target.checked ? 'Concluído' : 'A fazer' })}
             className="w-5 h-5 mt-1 accent-[#00c875] cursor-pointer shrink-0" />
           <div className="flex-1 min-w-0">
@@ -127,16 +127,16 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor 
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
         </div>
 
-        <div className="px-6 border-b border-slate-100 flex gap-1 overflow-x-auto">
+        <div className="px-4 md:px-6 border-b border-slate-100 flex gap-1 overflow-x-auto">
           {abas.map(([k, label]) => (
             <button key={k} onClick={() => setAba(k)}
               className={'px-3 py-2.5 text-[13px] font-semibold border-b-2 whitespace-nowrap ' + (aba === k ? 'border-[#7b68ee] text-[#7b68ee]' : 'border-transparent text-slate-400 hover:text-slate-600')}>{label}</button>
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {aba === 'detalhes' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Campo label="Contrato">
                 <select className={inputCls} value={f.contrato_id || ''} onChange={set('contrato_id')}>
                   <option value="">Sem contrato (tarefa avulsa)</option>
@@ -303,7 +303,7 @@ export function TarefaDrawer({ tarefa, tarefas, contratos, perfis, user, editor 
           )}
         </div>
 
-        <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between">
+        <div className="px-4 md:px-6 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
           {!nova && editor ? <Botao variante="perigo" onClick={excluir}>Excluir</Botao> : <span />}
           <div className="flex gap-2">
             <Botao variante="neutro" onClick={onClose}>Fechar</Botao>

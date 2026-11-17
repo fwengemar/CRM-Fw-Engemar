@@ -68,7 +68,7 @@ export function BarraFiltros({
   const limpo = filtroLimpo(filtros)
 
   return (
-    <div className="nao-imprimir px-5 py-2 border-b border-slate-200 bg-white flex items-center gap-3 flex-wrap text-[13px]">
+    <div className="nao-imprimir px-4 md:px-5 py-2 border-b border-slate-200 bg-white flex items-center gap-2 md:gap-3 flex-wrap text-[13px]">
       <button onClick={() => setAberta(!aberta)}
         className={'rounded-lg border px-2.5 py-1 font-semibold ' + (limpo ? 'border-slate-200 text-slate-500 hover:bg-slate-50' : 'border-[#0073ea] text-[#0073ea]')}>
         Filtros{limpo ? '' : ' ·'}
@@ -119,7 +119,7 @@ export function BarraFiltros({
         </label>
       )}
 
-      <label className="flex items-center gap-1 text-slate-500 ml-auto">
+      <label className="flex items-center gap-1 text-slate-500 md:ml-auto">
         {ehTarefa ? 'Prazo' : 'Sessão'}
         <select value={filtros.janela} onChange={(e) => setFiltros({ ...filtros, janela: e.target.value })}
           className="rounded-lg border border-slate-200 px-2 py-1 outline-none focus:border-[#0073ea]">

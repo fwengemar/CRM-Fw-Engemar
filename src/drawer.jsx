@@ -137,7 +137,7 @@ export function Drawer({ contrato, perfis, user, editor = true, campos = [], tar
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-slate-900/30" onMouseDown={onClose}>
       <div className="w-full max-w-2xl h-full bg-white shadow-2xl flex flex-col" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-slate-100 flex items-start gap-3">
+        <div className="px-4 md:px-6 py-4 border-b border-slate-100 flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <input value={f.objeto} onChange={set('objeto')} placeholder="Objeto do contrato"
               className="w-full text-lg font-bold text-slate-800 outline-none placeholder:text-slate-300" />
@@ -150,7 +150,7 @@ export function Drawer({ contrato, perfis, user, editor = true, campos = [], tar
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
         </div>
 
-        <div className="px-6 border-b border-slate-100 flex gap-1 overflow-x-auto">
+        <div className="px-4 md:px-6 border-b border-slate-100 flex gap-1 overflow-x-auto">
           {abas.map(([k, label]) => (
             <button key={k} onClick={() => setAba(k)}
               className={'px-3 py-2.5 text-[13px] font-semibold border-b-2 whitespace-nowrap ' + (abaAtual === k ? 'border-[#0073ea] text-[#0073ea]' : 'border-transparent text-slate-400 hover:text-slate-600')}>
@@ -159,9 +159,9 @@ export function Drawer({ contrato, perfis, user, editor = true, campos = [], tar
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {abaAtual === 'detalhes' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Campo label="Número do contrato / edital"><input className={inputCls} value={f.numero || ''} onChange={set('numero')} placeholder="ex.: CDP nº 15/2026" /></Campo>
               <Campo label="Modalidade">
                 <select className={inputCls} value={f.modalidade || ''} onChange={set('modalidade')}>
@@ -205,7 +205,7 @@ export function Drawer({ contrato, perfis, user, editor = true, campos = [], tar
               <ListaTarefasContrato tarefas={minhasTarefas} perfis={perfis} contratos={contratos} onPatch={onPatchTarefa} onAbrir={onAbrirTarefa} onExcluir={onExcluirTarefa} />
               <div className="flex gap-4 mt-4">
                 <button onClick={() => onNovaTarefa(contrato.id)} className="text-[13px] font-semibold text-slate-400 hover:text-[#0073ea]">+ Nova tarefa</button>
-                <button onClick={gerarDaFase} className="text-[13px] font-semibold text-[#7b68ee] hover:underline">↻ Gerar tarefas padrão da fase \"{contrato.fase}\"</button>
+                <button onClick={gerarDaFase} className="text-[13px] font-semibold text-[#7b68ee] hover:underline">↻ Gerar tarefas padrão da fase “{contrato.fase}”</button>
               </div>
             </div>
           )}
@@ -300,7 +300,7 @@ export function Drawer({ contrato, perfis, user, editor = true, campos = [], tar
           )}
         </div>
 
-        <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between">
+        <div className="px-4 md:px-6 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
           {!novo && editor ? <Botao variante="perigo" onClick={excluir}>Excluir</Botao> : <span />}
           <div className="flex gap-2">
             <Botao variante="neutro" onClick={onClose}>Fechar</Botao>

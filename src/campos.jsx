@@ -130,7 +130,7 @@ export function Campos({ campos, meuPerfil, onMudou }) {
   )
 
   return (
-    <div className="p-5">
+    <div className="p-4 md:p-5">
       <div className="mb-4">
         <h2 className="text-[15px] font-extrabold text-slate-800">Campos personalizados</h2>
         <p className="text-[12px] text-slate-400">

@@ -21,7 +21,7 @@ export function Tabela({ contratos, perfis, onPatch, onAbrir, onNovo, agruparPor
   const corGrupo = (g) => (agruparPor === 'fase' ? CORES_FASE[g] : agruparPor === 'saude' ? CORES_SAUDE[g] : '#323338')
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-4 md:p-6 space-y-6 md:space-y-8">
       {grupos.map(([fase, lista]) => {
         const aberto = !fechados[fase]
         const total = lista.reduce((s, c) => s + Number(c.valor_total || 0), 0)
@@ -35,7 +35,14 @@ export function Tabela({ contratos, perfis, onPatch, onAbrir, onNovo, agruparPor
               {total > 0 && <span className="text-xs text-slate-400">· {moneyShort(total)}</span>}
             </div>
             {aberto && (
-              <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div className="md:hidden space-y-2">
+                {lista.map((c) => (
+                  <CartaoContrato key={c.id} c={c} perfis={perfis} onAbrir={onAbrir} />
+                ))}
+              </div>
+            )}
+            {aberto && (
+              <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
                 <table className="w-full border-collapse text-sm" style={{ minWidth: 1180 }}>
                   <thead>
                     <tr className="text-[11px] uppercase tracking-wide text-slate-400">
@@ -110,11 +117,43 @@ export function Tabela({ contratos, perfis, onPatch, onAbrir, onNovo, agruparPor
   )
 }
 
+/* no celular a tabela de 11 colunas nao cabe: cada contrato vira um cartao */
+function CartaoContrato({ c, perfis, onAbrir }) {
+  const resp = perfis.find((p) => p.id === c.responsavel_id)
+  const alvo = c.vigencia_fim || c.data_sessao
+  const d = diasAte(alvo)
+  return (
+    <button onClick={() => onAbrir(c)}
+      className="w-full text-left flex gap-3 rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden active:bg-slate-50">
+      <span className="w-1.5 shrink-0" style={{ background: CORES_FASE[c.fase] }} />
+      <div className="flex-1 min-w-0 py-3 pr-3 space-y-1.5">
+        <div className="font-semibold text-slate-700 text-[14px] leading-snug line-clamp-2">{c.objeto}</div>
+        <div className="text-[11px] text-slate-400">
+          {c.numero || 'sem número'} · {c.modalidade}{c.orgao ? ' · ' + c.orgao : ''}
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Pill value={c.fase} color={CORES_FASE[c.fase]} />
+          <Pill value={c.saude} color={CORES_SAUDE[c.saude]} />
+          {d !== null && (
+            <Pill value={d < 0 ? `${Math.abs(d)}d atrás` : `${d}d`}
+              color={d < 0 ? '#7e8fa5' : d <= 30 ? '#e2445c' : d <= 90 ? '#fdab3d' : '#00c875'} />
+          )}
+        </div>
+        <div className="flex items-center gap-2 pt-0.5">
+          <Avatar nome={resp?.nome} id={resp?.id} size={22} />
+          <span className="text-[11px] text-slate-400 truncate">{resp?.nome || 'Sem responsável'}</span>
+          <span className="ml-auto text-[12px] font-semibold text-slate-600 whitespace-nowrap">{money(valorVigente(c))}</span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
 /* ============================ KANBAN ============================ */
 export function Kanban({ contratos, perfis, onPatch, onAbrir }) {
   const [sobre, setSobre] = useState(null)
   return (
-    <div className="p-6 overflow-x-auto">
+    <div className="p-4 md:p-6 overflow-x-auto">
       <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
         {FASES.map((fase) => {
           const lista = contratos.filter((c) => c.fase === fase)
@@ -195,7 +234,7 @@ export function Timeline({ contratos, onAbrir }) {
   const nomeMes = (d) => d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '') + '/' + String(d.getFullYear()).slice(2)
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-x-auto">
         <div style={{ width: larguraTotal + 300, minWidth: '100%' }}>
           <div className="flex sticky top-0 bg-white z-10 border-b border-slate-100">
@@ -296,7 +335,7 @@ export function Dashboard({ contratos, perfis, medicoes = [], onAbrir }) {
   const maxFase = Math.max(1, ...porFase.map((p) => p.n))
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div className="imprimir-cabecalho">
           <h2 className="text-lg font-extrabold text-slate-800">FW CRM · Painel de contratos</h2>

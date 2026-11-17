@@ -3,7 +3,45 @@ import { createClient } from '@supabase/supabase-js'
 const url = import.meta.env.VITE_SUPABASE_URL || 'https://goautzfgguqcltjqteoi.supabase.co'
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_pACJNg4FvwOtbL4B2Md9Ow_DpwkTFtq'
 
-export const supabase = createClient(url, key)
+// persistSession + autoRefreshToken sao o padrao, mas ficam escritos aqui de
+// proposito: e o que mantem a pessoa conectada entre um dia e outro.
+export const supabase = createClient(url, key, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+})
+
+/* ---------- quanto tempo a sessao dura sem uso ---------- */
+export const DIAS_SESSAO = 5
+const CHAVE_USO = 'fwcrm_ultimo_uso'
+const CHAVE_MANTER = 'fwcrm_manter_conectado'
+
+export const manterConectado = () => {
+  try { return localStorage.getItem(CHAVE_MANTER) !== 'nao' } catch { return true }
+}
+export const definirManterConectado = (sim) => {
+  try { localStorage.setItem(CHAVE_MANTER, sim ? 'sim' : 'nao') } catch {}
+}
+export const marcarUso = () => {
+  try { localStorage.setItem(CHAVE_USO, String(Date.now())) } catch {}
+}
+// true quando passou dos DIAS_SESSAO dias desde a ultima vez que abriu
+export function sessaoVencida() {
+  try {
+    const ultimo = Number(localStorage.getItem(CHAVE_USO) || 0)
+    if (!ultimo) return false            // primeira vez: nao vence
+    return Date.now() - ultimo > DIAS_SESSAO * 86400000
+  } catch { return false }
+}
+// aparelho onde a pessoa pediu para NAO ficar conectada: vale so enquanto a aba vive
+export function abaNova() {
+  try {
+    if (sessionStorage.getItem('fwcrm_aba') === 'viva') return false
+    sessionStorage.setItem('fwcrm_aba', 'viva')
+    return true
+  } catch { return false }
+}
+export function limparUso() {
+  try { localStorage.removeItem(CHAVE_USO) } catch {}
+}
 // endereço das funções do servidor (criar acesso precisa da chave de serviço,
 // que nunca pode ficar no navegador)
 export const FUNCOES = url + '/functions/v1'

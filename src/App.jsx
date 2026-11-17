@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { supabase, CONCLUIDA, diasAte, pedirNotaConclusao, podeEditar, ehAdmin, exportarXlsx, dataArquivo, money, dt, valorVigente, ehMinha, responsaveisDe } from './lib'
+import { DIAS_SESSAO, manterConectado, definirManterConectado, marcarUso, sessaoVencida, abaNova, limparUso } from './lib'
+import { AvisosCelular } from './avisos-celular'
+import { registrarSW } from './push'
 import { Avatar, Botao, inputCls } from './ui'
 import { Tabela, Kanban, Timeline, Dashboard } from './views'
 import { MinhasTarefas, QuadroTarefas, Calendario, PainelTarefas } from './tarefas'
@@ -18,18 +21,21 @@ function Login() {
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [manter, setManter] = useState(manterConectado())
 
   async function entrar(e) {
     e.preventDefault()
     setCarregando(true); setErro('')
+    definirManterConectado(manter)
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha })
     setCarregando(false)
     if (error) setErro(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message)
+    else marcarUso()
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'linear-gradient(135deg,#0b2a4a 0%,#0073ea 100%)' }}>
-      <form onSubmit={entrar} className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6" style={{ background: 'linear-gradient(135deg,#0b2a4a 0%,#0073ea 100%)' }}>
+      <form onSubmit={entrar} className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 sm:p-8">
         <div className="text-center mb-6">
           <img src="/logo.png" alt="FW CRM" className="w-20 h-20 mx-auto rounded-xl" />
           <h1 className="text-xl font-extrabold text-slate-800 mt-2">FW CRM</h1>
@@ -43,12 +49,49 @@ function Login() {
           <span className="text-[11px] font-bold uppercase text-slate-400">Senha</span>
           <input className={inputCls} type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
         </label>
+        <label className="flex items-start gap-2 mb-4 cursor-pointer">
+          <input type="checkbox" checked={manter} onChange={(e) => setManter(e.target.checked)}
+            className="mt-0.5 w-4 h-4 accent-[#0073ea]" />
+          <span className="text-[12px] text-slate-500 leading-snug">
+            Manter conectado neste aparelho
+            <span className="block text-[11px] text-slate-400">
+              Só pede a senha de novo depois de {DIAS_SESSAO} dias sem abrir o CRM.
+            </span>
+          </span>
+        </label>
         {erro && <div className="text-[13px] text-[#e2445c] mb-3">{erro}</div>}
         <button type="submit" disabled={carregando} className="w-full rounded-lg bg-[#0073ea] text-white font-semibold py-2.5 hover:bg-[#0060b9] disabled:opacity-60">
           {carregando ? 'Entrando…' : 'Entrar'}
         </button>
         <p className="text-[11px] text-slate-400 text-center mt-4">Acesso restrito à equipe FW Engemar</p>
       </form>
+    </div>
+  )
+}
+
+// O menu do avatar. Fica fora do App de proposito: componente declarado dentro
+// de outro vira um tipo novo a cada render e o React remonta tudo que tem
+// dentro, inclusive os ganchos do aviso no celular.
+function MenuPerfil({ aberto, onAlternar, meuPerfil, user, admin, editor, tema, setTema, onSair }) {
+  return (
+    <div className="relative">
+      <button onClick={onAlternar}><Avatar nome={meuPerfil?.nome || user.email} id={user.id} size={34} /></button>
+      {aberto && (
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 p-3 z-30">
+          <div className="text-[13px] font-semibold text-slate-700">{meuPerfil?.nome}</div>
+          <div className="text-[11px] text-slate-400 break-all">{user.email}</div>
+          <div className="text-[11px] text-slate-400 mb-3">
+            {admin ? 'Administrador' : editor ? 'Editor' : 'Somente leitura'}
+          </div>
+          <button onClick={() => setTema(tema === 'escuro' ? 'claro' : 'escuro')}
+            className="w-full flex items-center gap-2 text-left text-[13px] font-semibold text-slate-600 hover:bg-slate-50 rounded px-2 py-1.5 mb-1">
+            <span className="text-slate-400">{tema === 'escuro' ? '☀' : '☾'}</span>
+            <span>{tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}</span>
+          </button>
+          <AvisosCelular user={user} />
+          <button onClick={onSair} className="w-full text-left text-[13px] text-[#e2445c] font-semibold hover:bg-slate-50 rounded px-2 py-1.5">Sair</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -86,10 +129,41 @@ export default function App() {
     try { localStorage.setItem('fwcrm_tema', tema) } catch {}
   }, [tema])
 
+  // Sessao: fica conectada entre os dias e so cai depois de DIAS_SESSAO sem uso.
+  // Quem desmarcou "manter conectado" sai ao abrir uma aba nova.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSessao(data.session))
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSessao(s))
-    return () => sub.subscription.unsubscribe()
+    // decidido aqui, antes de qualquer espera: o supabase avisa a sessão
+    // guardada logo de cara, e isso renovaria a marca de uso antes da conta
+    const precisaSair = sessaoVencida() || (!manterConectado() && abaNova())
+
+    const { data: sub } = supabase.auth.onAuthStateChange((evento, s) => {
+      if (precisaSair && evento === 'INITIAL_SESSION') return   // essa sessão já está saindo
+      if (s) marcarUso()
+      setSessao(s ?? null)
+    })
+
+    const abrirSessao = async () => {
+      const { data } = await supabase.auth.getSession()
+      if (data.session && precisaSair) {
+        limparUso()
+        await supabase.auth.signOut()
+        setSessao(null)
+        return
+      }
+      if (data.session) marcarUso()
+      setSessao(data.session ?? null)
+    }
+    abrirSessao()
+    const tocar = () => { if (document.visibilityState === 'visible') marcarUso() }
+    document.addEventListener('visibilitychange', tocar)
+    window.addEventListener('focus', tocar)
+    const id = setInterval(tocar, 5 * 60 * 1000)
+    return () => {
+      sub.subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', tocar)
+      window.removeEventListener('focus', tocar)
+      clearInterval(id)
+    }
   }, [])
 
   const carregar = useCallback(async () => {
@@ -153,6 +227,21 @@ export default function App() {
     if (error) alert('Erro ao excluir: ' + error.message)
     carregar()
   }
+
+  // o aviso no celular precisa do service worker registrado desde o inicio
+  useEffect(() => { registrarSW() }, [])
+
+  // tocar no aviso abre /?tarefa=<id>: aqui a tarefa vai para a tela
+  useEffect(() => {
+    if (!tarefas.length && !contratos.length) return
+    const p = new URLSearchParams(window.location.search)
+    const t = p.get('tarefa')
+    const c = p.get('contrato')
+    if (!t && !c) return
+    if (t) setTarefaAberta({ id: t })
+    else setAberto({ id: c })
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [tarefas.length, contratos.length])
 
   if (sessao === undefined) return <div className="min-h-screen flex items-center justify-center text-slate-400">Carregando…</div>
   if (!sessao) return <Login />
@@ -250,6 +339,11 @@ export default function App() {
     if (v.agrupamento) setAgrupamento(v.agrupamento)
   }
 
+  async function sair() {
+    limparUso()
+    await supabase.auth.signOut()
+  }
+
   const propsContrato = { contratos: contratosFiltrados, perfis, onPatch: patch, onAbrir: setAberto, onNovo: () => setAberto({}), agruparPor: agrupamento }
   const propsTarefa = {
     tarefas: tarefasFiltradas, perfis, contratos, user,
@@ -296,9 +390,10 @@ export default function App() {
       </aside>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="bg-white border-b border-slate-200 px-5 py-3">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex-1 min-w-[180px]">
+        <header className="bg-white border-b border-slate-200 px-4 md:px-5 py-3">
+          {/* no celular: titulo, sino e avatar numa linha; busca e botoes embaixo */}
+          <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+            <div className="flex-1 min-w-0 md:min-w-[180px]">
               <h1 className="text-lg font-extrabold text-slate-800">{ehTarefa ? 'Tarefas' : 'Gestão de Contratos'}</h1>
               <p className="text-[12px] text-slate-400">
                 {ehTarefa
@@ -306,42 +401,31 @@ export default function App() {
                   : `${contratos.length} contratos · atualizado em tempo real`}
               </p>
             </div>
-            <div className="flex items-center gap-1">
+            {/* um sino so: no celular fica ao lado do titulo, no computador vai para o fim da linha */}
+            <div className="flex items-center gap-1 shrink-0 md:order-last">
+              <Sino user={user} perfis={perfis} onAbrirTarefa={setTarefaAberta} onAbrirContrato={setAberto} />
+              <MenuPerfil aberto={menu} onAlternar={() => setMenu(!menu)}
+                meuPerfil={meuPerfil} user={user} admin={admin} editor={editor}
+                tema={tema} setTema={setTema} onSair={sair} />
+            </div>
+            <div className="flex items-center gap-1 w-full md:w-auto">
               <input value={busca} onChange={(e) => setBusca(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && busca.trim().length >= 2) setBuscaGlobal(true) }}
                 placeholder={ehTarefa ? 'Buscar tarefa…' : 'Buscar contrato, órgão, processo…'}
                 title="Filtra esta tela. Enter procura em tudo."
-                className="rounded-lg border border-slate-200 px-3 py-2 text-[13px] w-56 outline-none focus:border-[#0073ea]" />
+                className="rounded-lg border border-slate-200 px-3 py-2 text-[13px] flex-1 md:flex-none md:w-56 min-w-0 outline-none focus:border-[#0073ea]" />
               <button onClick={() => setBuscaGlobal(true)} title="Procurar em contratos, tarefas e comentários"
                 className="rounded-lg border border-slate-200 px-2.5 py-2 text-[13px] text-slate-500 hover:bg-slate-50">tudo</button>
             </div>
-            <select value={filtroResp} onChange={(e) => setFiltroResp(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-[13px] outline-none focus:border-[#0073ea]">
+            <select value={filtroResp} onChange={(e) => setFiltroResp(e.target.value)}
+              className="rounded-lg border border-slate-200 px-2 md:px-3 py-2 text-[13px] max-w-[46%] md:max-w-none outline-none focus:border-[#0073ea]">
               <option value="">Todos responsáveis</option>
               {perfis.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
             </select>
-            <Botao variante="neutro" onClick={exportar}>Exportar</Botao>
+            <Botao variante="neutro" onClick={exportar} className="hidden sm:block">Exportar</Botao>
             {editor && (ehTarefa
               ? <Botao onClick={() => setTarefaAberta({})}>+ Nova tarefa</Botao>
               : <Botao onClick={() => setAberto({})}>+ Novo contrato</Botao>)}
-            <Sino user={user} perfis={perfis} onAbrirTarefa={setTarefaAberta} onAbrirContrato={setAberto} />
-            <div className="relative">
-              <button onClick={() => setMenu(!menu)}><Avatar nome={meuPerfil?.nome || user.email} id={user.id} size={34} /></button>
-              {menu && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 p-3 z-30">
-                  <div className="text-[13px] font-semibold text-slate-700">{meuPerfil?.nome}</div>
-                  <div className="text-[11px] text-slate-400">{user.email}</div>
-                  <div className="text-[11px] text-slate-400 mb-3">
-                    {admin ? 'Administrador' : editor ? 'Editor' : 'Somente leitura'}
-                  </div>
-                  <button onClick={() => setTema(tema === 'escuro' ? 'claro' : 'escuro')}
-                    className="w-full flex items-center gap-2 text-left text-[13px] font-semibold text-slate-600 hover:bg-slate-50 rounded px-2 py-1.5 mb-1">
-                    <span className="text-slate-400">{tema === 'escuro' ? '☀' : '☾'}</span>
-                    <span>{tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}</span>
-                  </button>
-                  <button onClick={() => supabase.auth.signOut()} className="w-full text-left text-[13px] text-[#e2445c] font-semibold hover:bg-slate-50 rounded px-2 py-1.5">Sair</button>
-                </div>
-              )}
-            </div>
           </div>
           <div className="flex gap-1 mt-3 md:hidden overflow-x-auto">
             {NAV.flatMap(([, itens]) => itens).map(([k, label]) => (
