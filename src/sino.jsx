@@ -4,6 +4,15 @@ import { Avatar } from './ui'
 
 // Comentário que ninguém lê é comentário perdido: quem é citado com @ recebe
 // aqui e, com a permissão já dada para os prazos, um balão na tela também.
+// o mesmo texto que a função do servidor usa no aviso do celular
+function chamada(n, autor) {
+  if (n.tipo === 'hora') return 'a hora marcada chegou'
+  if (n.tipo === 'atribuida') return 'nova tarefa para você'
+  if (n.tipo === 'resposta') return (autor || 'alguém') + ' respondeu na tarefa'
+  if (n.tipo === 'mudanca') return (autor || 'alguém') + ' mexeu na sua tarefa'
+  return (autor || 'alguém') + ' chamou você'
+}
+
 export function Sino({ user, perfis, onAbrirTarefa, onAbrirContrato }) {
   const [itens, setItens] = useState([])
   const [aberto, setAberto] = useState(false)
@@ -26,17 +35,18 @@ export function Sino({ user, perfis, onAbrirTarefa, onAbrirContrato }) {
     return () => { supabase.removeChannel(canal); clearInterval(id) }
   }, [carregar])
 
-  // balão do sistema para o que chegou depois que a tela abriu
+  // balão do sistema para o que chegou depois que a tela abriu.
+  // Aviso de mudança em tarefa (so_sino) fica só aqui dentro, sem interromper.
   useEffect(() => {
     const novas = itens.filter((n) => !n.lida_em && !jaMostradas.current.has(n.id))
     novas.forEach((n) => jaMostradas.current.add(n.id))
     if (primeiraCarga.current) { primeiraCarga.current = false; return }
     if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return
-    novas.forEach((n) => {
+    novas.filter((n) => !n.so_sino).forEach((n) => {
       try {
-        new Notification('FW CRM · ' + (nomeDe(n.autor_id) || 'alguém') + ' chamou você', {
+        new Notification('FW CRM · ' + chamada(n, nomeDe(n.autor_id)), {
           body: n.titulo + (n.texto ? ' — ' + n.texto.slice(0, 90) : ''),
-          tag: 'fwcrm-mencao-' + n.id, icon: '/logo.png',
+          tag: 'fwcrm-' + (n.tarefa_id || n.id), icon: '/icone-192.png',
         })
       } catch {}
     })
@@ -62,7 +72,7 @@ export function Sino({ user, perfis, onAbrirTarefa, onAbrirContrato }) {
   return (
     <div className="relative">
       <button onClick={() => { setAberto(!aberto); if (!aberto) marcarLidas() }}
-        title="Menções e avisos" className="relative px-1.5 py-1 leading-none text-slate-400 hover:text-slate-600">
+        title="Avisos e menções" className="relative px-1.5 py-1 leading-none text-slate-400 hover:text-slate-600">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -79,11 +89,12 @@ export function Sino({ user, perfis, onAbrirTarefa, onAbrirContrato }) {
           <div className="fixed inset-0 z-20" onMouseDown={() => setAberto(false)} />
           <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-100 z-30 max-h-[70vh] overflow-y-auto">
             <div className="px-3 py-2 border-b border-slate-100 text-[12px] font-bold text-slate-500">
-              Menções {itens.length > 0 && <span className="font-normal text-slate-400">· últimas {itens.length}</span>}
+              Avisos {itens.length > 0 && <span className="font-normal text-slate-400">· últimos {itens.length}</span>}
             </div>
             {itens.length === 0 && (
               <div className="px-3 py-6 text-[13px] text-slate-400 text-center">
-                Nada por aqui. Quem escrever @{nomeDe(user.id) || 'seu nome'} num comentário aparece aqui.
+                Nada por aqui. Aparecem as tarefas suas que alguém mexer, as atribuídas a você
+                e quem escrever @{nomeDe(user.id) || 'seu nome'} num comentário.
               </div>
             )}
             {itens.map((n) => (
@@ -93,6 +104,7 @@ export function Sino({ user, perfis, onAbrirTarefa, onAbrirContrato }) {
                   <Avatar nome={nomeDe(n.autor_id)} id={n.autor_id || 'x'} size={20} />
                   <span className="text-[12px] font-semibold text-slate-700 flex-1 line-clamp-1">{n.titulo}</span>
                 </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{chamada(n, nomeDe(n.autor_id))}</div>
                 {n.texto && <div className="text-[12px] text-slate-500 mt-1 line-clamp-2">{n.texto}</div>}
                 <div className="text-[11px] text-slate-400 mt-0.5">{dt(n.criado_em)}</div>
               </button>
